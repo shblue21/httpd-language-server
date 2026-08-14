@@ -1,0 +1,31 @@
+{
+  "name": "@httpd-language-server/language",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.10.0"
+  },
+  "files": ["out", "src", "syntaxes"],
+  "main": "./out/index.js",
+  "types": "./out/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./out/index.d.ts",
+      "default": "./out/index.js"
+    }
+  },
+  "scripts": {
+    "generate": "langium generate",
+    "generate:watch": "langium generate --watch",
+    "clean": "node -e \"require('node:fs').rmSync('out', { recursive: true, force: true }); require('node:fs').rmSync('src/generated', { recursive: true, force: true }); require('node:fs').rmSync('syntaxes', { recursive: true, force: true })\"",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "langium": "~4.3.0"
+  },
+  "devDependencies": {
+    "langium-cli": "~4.3.0",
+    "vitest": "~4.1.10"
+  }
+}

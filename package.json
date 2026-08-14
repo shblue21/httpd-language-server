@@ -1,0 +1,28 @@
+{
+  "name": "httpd-language-server-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.26.1",
+  "engines": {
+    "node": ">=20.10.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "generate": "pnpm --filter @httpd-language-server/language generate",
+    "build": "pnpm generate && tsc -b tsconfig.build.json && pnpm --filter httpd-language-support bundle",
+    "clean": "pnpm -r clean && tsc -b tsconfig.build.json --clean",
+    "test": "pnpm --filter @httpd-language-server/language test",
+    "check": "pnpm build && pnpm test",
+    "cli": "node packages/cli/bin/httpd-ls.js",
+    "package:vscode": "pnpm build && pnpm --filter httpd-language-support package"
+  },
+  "devDependencies": {
+    "@types/node": "~20.19.42",
+    "typescript": "~5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"],
+    "ignoredBuiltDependencies": ["@vscode/vsce-sign", "keytar"]
+  }
+}

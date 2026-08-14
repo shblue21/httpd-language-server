@@ -1,0 +1,14 @@
+{
+  "projectName": "Httpd",
+  "languages": [
+    {
+      "id": "httpd",
+      "grammar": "src/grammar/httpd.langium",
+      "fileExtensions": [".conf", ".htaccess"],
+      "textMate": {
+        "out": "syntaxes/httpd.tmLanguage.json"
+      }
+    }
+  ],
+  "out": "src/generated"
+}

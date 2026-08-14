@@ -1,0 +1,29 @@
+{
+  "name": "@httpd-language-server/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.10.0"
+  },
+  "files": ["bin", "out"],
+  "main": "./out/index.js",
+  "types": "./out/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./out/index.d.ts",
+      "default": "./out/index.js"
+    }
+  },
+  "bin": {
+    "httpd-language-server": "./bin/httpd-language-server.js"
+  },
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('out', { recursive: true, force: true })\""
+  },
+  "dependencies": {
+    "@httpd-language-server/language": "workspace:*",
+    "langium": "~4.3.0",
+    "vscode-languageserver": "~10.0.1"
+  }
+}

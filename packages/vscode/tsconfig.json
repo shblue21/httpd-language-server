@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "out-types",
+    "noEmit": true,
+    "types": ["node", "vscode"]
+  },
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../server/tsconfig.json" }]
+}
