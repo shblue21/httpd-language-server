@@ -15,6 +15,7 @@ import { HttpdHoverProvider } from './httpd-hover-provider.js';
 import { HttpdIncludeGraph } from './httpd-include-graph.js';
 import { HttpdIncludeResolver } from './httpd-include-resolver.js';
 import { HttpdRequirementAnalyzer } from './httpd-requirements.js';
+import { HttpdRenameProvider } from './httpd-rename-provider.js';
 import { HttpdServiceRegistry } from './httpd-service-registry.js';
 import { HttpdValueConverter } from './httpd-value-converter.js';
 import { HttpdValidator, registerValidationChecks } from './httpd-validator.js';
@@ -46,7 +47,8 @@ export const HttpdModule: Module<HttpdServices, PartialLangiumServices & HttpdAd
     lsp: {
         CompletionProvider: () => new HttpdCompletionProvider(),
         DefinitionProvider: services => new HttpdDefinitionProvider(services.workspace.IncludeResolver),
-        HoverProvider: services => new HttpdHoverProvider(services.semantic.Requirements)
+        HoverProvider: services => new HttpdHoverProvider(services.semantic.Requirements),
+        RenameProvider: () => new HttpdRenameProvider()
     },
     parser: {
         ValueConverter: () => new HttpdValueConverter()

@@ -5,3 +5,5 @@ out/**/*.map
 tsconfig.json
 esbuild.mjs
 node_modules/
+resources/
+*.vsix

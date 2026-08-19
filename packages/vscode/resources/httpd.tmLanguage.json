@@ -1,0 +1,83 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "HTTPD",
+  "scopeName": "source.httpd",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#sections" },
+    { "include": "#directives" },
+    { "include": "#strings" },
+    { "include": "#variables" },
+    { "include": "#continuations" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.number-sign.httpd",
+          "match": "^\\s*(#.*)$",
+          "captures": {
+            "1": { "name": "comment.line.number-sign.httpd" }
+          }
+        }
+      ]
+    },
+    "sections": {
+      "patterns": [
+        {
+          "match": "(</?)([A-Za-z][A-Za-z0-9_-]*)",
+          "captures": {
+            "1": { "name": "punctuation.definition.tag.httpd" },
+            "2": { "name": "entity.name.tag.httpd" }
+          }
+        }
+      ]
+    },
+    "directives": {
+      "patterns": [
+        {
+          "match": "^\\s*([A-Za-z][A-Za-z0-9_-]*)",
+          "captures": {
+            "1": { "name": "keyword.other.directive.httpd" }
+          }
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.httpd",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            { "match": "\\\\(?:\\\\|\")", "name": "constant.character.escape.httpd" }
+          ]
+        },
+        {
+          "name": "string.quoted.single.httpd",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            { "match": "\\\\(?:\\\\|')", "name": "constant.character.escape.httpd" }
+          ]
+        }
+      ]
+    },
+    "variables": {
+      "patterns": [
+        {
+          "name": "variable.other.httpd",
+          "match": "\\$\\{[A-Za-z_][A-Za-z0-9_]*\\}"
+        }
+      ]
+    },
+    "continuations": {
+      "patterns": [
+        {
+          "name": "punctuation.separator.continuation.httpd",
+          "match": "\\\\$"
+        }
+      ]
+    }
+  }
+}

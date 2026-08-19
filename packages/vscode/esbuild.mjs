@@ -4,7 +4,7 @@ import { copyFile, mkdir } from 'node:fs/promises';
 const watch = process.argv.includes('--watch');
 
 await mkdir('syntaxes', { recursive: true });
-await copyFile('../language/syntaxes/httpd.tmLanguage.json', 'syntaxes/httpd.tmLanguage.json');
+await copyFile('resources/httpd.tmLanguage.json', 'syntaxes/httpd.tmLanguage.json');
 await copyFile('../../LICENSE', 'LICENSE');
 
 const context = await esbuild.context({

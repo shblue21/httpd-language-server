@@ -5,10 +5,7 @@
       "id": "httpd",
       "grammar": "src/grammar/httpd.langium",
       "fileExtensions": [".httpd"],
-      "fileNames": ["httpd.conf", "apache2.conf", ".htaccess"],
-      "textMate": {
-        "out": "syntaxes/httpd.tmLanguage.json"
-      }
+      "fileNames": ["httpd.conf", "apache2.conf", ".htaccess"]
     }
   ],
   "out": "src/generated"

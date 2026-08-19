@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { EmptyFileSystem } from 'langium';
-import { expectCompletion, expectHover } from 'langium/test';
+import { expectCompletion, expectHover, parseHelper } from 'langium/test';
 import { createHttpdServices, type HttpdServices } from '../src/index.js';
 
 let services: HttpdServices;
@@ -51,5 +51,15 @@ describe('HTTPD language services', () => {
             parseOptions: { documentUri: 'file:///.htaccess' },
             hover: /\*\*Module state:\*\* unknown[\s\S]*\*\*Requires AllowOverride:\*\* AuthConfig/
         });
+    });
+
+    test('does not offer unsafe rename before semantic references exist', async () => {
+        const document = await parseHelper(services)('ServerName example.test\n');
+        const range = await services.lsp.RenameProvider?.prepareRename(document, {
+            textDocument: { uri: document.uri.toString() },
+            position: { line: 0, character: 3 }
+        });
+
+        expect(range).toBeUndefined();
     });
 });
