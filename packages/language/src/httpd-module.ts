@@ -9,13 +9,18 @@ import {
 } from 'langium/lsp';
 import { HttpdGeneratedModule, HttpdGeneratedSharedModule } from './generated/module.js';
 import { HttpdCompletionProvider } from './httpd-completion-provider.js';
+import { HttpdDefinitionProvider } from './httpd-definition-provider.js';
 import { HttpdHoverProvider } from './httpd-hover-provider.js';
+import { HttpdIncludeResolver } from './httpd-include-resolver.js';
 import { HttpdValueConverter } from './httpd-value-converter.js';
 import { HttpdValidator, registerValidationChecks } from './httpd-validator.js';
 
 export type HttpdAddedServices = {
     validation: {
         HttpdValidator: HttpdValidator;
+    };
+    workspace: {
+        IncludeResolver: HttpdIncludeResolver;
     };
 };
 
@@ -24,13 +29,17 @@ export type HttpdServices = LangiumServices & HttpdAddedServices;
 export const HttpdModule: Module<HttpdServices, PartialLangiumServices & HttpdAddedServices> = {
     lsp: {
         CompletionProvider: () => new HttpdCompletionProvider(),
+        DefinitionProvider: services => new HttpdDefinitionProvider(services.workspace.IncludeResolver),
         HoverProvider: () => new HttpdHoverProvider()
     },
     parser: {
         ValueConverter: () => new HttpdValueConverter()
     },
     validation: {
-        HttpdValidator: () => new HttpdValidator()
+        HttpdValidator: services => new HttpdValidator(services.workspace.IncludeResolver)
+    },
+    workspace: {
+        IncludeResolver: services => new HttpdIncludeResolver(services.shared.workspace.FileSystemProvider)
     }
 };
 

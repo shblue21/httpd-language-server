@@ -1,4 +1,4 @@
-import type { ValidationAcceptor, ValidationChecks } from 'langium';
+import { AstUtils, type ValidationAcceptor, type ValidationChecks } from 'langium';
 import {
     type Directive,
     type HttpdAstType,
@@ -9,6 +9,7 @@ import {
 import { apache24Catalog } from './catalog/apache-2.4.js';
 import type { DirectiveKind, DirectiveSpec } from './catalog/types.js';
 import { getNodeContext } from './httpd-context.js';
+import { HttpdIncludeResolver, isIncludeDirective } from './httpd-include-resolver.js';
 import type { HttpdServices } from './httpd-module.js';
 
 export function registerValidationChecks(services: HttpdServices): void {
@@ -18,12 +19,14 @@ export function registerValidationChecks(services: HttpdServices): void {
         HttpdDocument: validator.checkOrphanSectionClosings,
         Section: [validator.checkSectionPair, validator.checkSectionDelimiters],
         SectionOpen: validator.checkSectionOpen,
-        Directive: validator.checkDirective
+        Directive: [validator.checkDirective, validator.checkIncludeTarget]
     };
     registry.register(checks, validator);
 }
 
 export class HttpdValidator {
+    constructor(private readonly includes: HttpdIncludeResolver) {}
+
     checkOrphanSectionClosings(document: HttpdDocument, accept: ValidationAcceptor): void {
         document.orphanClosings.forEach((close, index) => {
             accept('error', `Closing section </${close.name}> has no matching opening section.`, {
@@ -61,6 +64,21 @@ export class HttpdValidator {
 
     checkDirective(directive: Directive, accept: ValidationAcceptor): void {
         this.checkCatalogEntry(directive, 'directive', accept);
+    }
+
+    async checkIncludeTarget(directive: Directive, accept: ValidationAcceptor): Promise<void> {
+        if (!isIncludeDirective(directive) || directive.name.toLowerCase() === 'includeoptional') {
+            return;
+        }
+
+        const resolution = await this.includes.resolve(AstUtils.getDocument(directive), directive);
+        if (resolution.status === 'missing') {
+            accept('error', `Cannot resolve required include "${directive.arguments[0]}" from this workspace.`, {
+                node: directive,
+                property: 'arguments',
+                index: 0
+            });
+        }
     }
 
     checkSectionOpen(section: SectionOpen, accept: ValidationAcceptor): void {
