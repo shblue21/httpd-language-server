@@ -16,6 +16,7 @@
     }
   },
   "scripts": {
+    "catalog:generate": "node scripts/generate-apache-2.4.mjs",
     "generate": "langium generate",
     "generate:watch": "langium generate --watch",
     "clean": "node -e \"require('node:fs').rmSync('out', { recursive: true, force: true }); require('node:fs').rmSync('src/generated', { recursive: true, force: true }); require('node:fs').rmSync('syntaxes', { recursive: true, force: true })\"",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "langium-cli": "~4.3.0",
+    "sax": "~1.6.1",
     "vitest": "~4.1.10"
   }
 }

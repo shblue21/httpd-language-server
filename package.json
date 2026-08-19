@@ -9,6 +9,7 @@
     "pnpm": ">=10.0.0"
   },
   "scripts": {
+    "catalog:generate": "pnpm --filter @httpd-language-server/language catalog:generate",
     "generate": "pnpm --filter @httpd-language-server/language generate",
     "build": "pnpm generate && tsc -b tsconfig.build.json && pnpm --filter httpd-language-support bundle",
     "clean": "pnpm -r clean && tsc -b tsconfig.build.json --clean",

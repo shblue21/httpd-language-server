@@ -16,11 +16,14 @@ const modules: ModuleSpec[] = [
 
 const directives: DirectiveSpec[] = [
     {
+        id: 'core:directive:servername',
+        owner: 'core',
         name: 'ServerName',
         kind: 'directive',
         modules: ['core'],
         contexts: ['server', 'virtual-host'],
         override: [],
+        status: 'Core',
         description: 'Hostname and port that the server uses to identify itself.',
         syntax: 'ServerName [scheme://]domain-name|ip-address[:port]',
         documentation: 'https://httpd.apache.org/docs/2.4/mod/core.html#servername'

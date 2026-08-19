@@ -4,7 +4,8 @@ export type DirectiveContext =
     | 'server'
     | 'virtual-host'
     | 'directory'
-    | 'htaccess';
+    | 'htaccess'
+    | 'proxy';
 
 export interface VersionMetadata {
     since?: string;
@@ -18,6 +19,7 @@ export interface ModuleSpec extends VersionMetadata {
     id: string;
     identifiers: readonly string[];
     fileNames: readonly string[];
+    sourceFile?: string;
     status: string;
     bundled: boolean;
     dependencies: readonly string[];
@@ -32,11 +34,14 @@ export interface ArgumentCount {
 }
 
 export interface DirectiveSpec extends VersionMetadata {
+    id: string;
+    owner: string;
     name: string;
     kind: DirectiveKind;
     modules: readonly string[];
     contexts: readonly DirectiveContext[];
     override: readonly string[];
+    status: string;
     description: string;
     syntax: string;
     default?: string;
