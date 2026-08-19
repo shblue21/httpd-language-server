@@ -11,6 +11,7 @@ import { HttpdGeneratedModule, HttpdGeneratedSharedModule } from './generated/mo
 import { HttpdCompletionProvider } from './httpd-completion-provider.js';
 import { HttpdDefinitionProvider } from './httpd-definition-provider.js';
 import { HttpdHoverProvider } from './httpd-hover-provider.js';
+import { HttpdIncludeGraph } from './httpd-include-graph.js';
 import { HttpdIncludeResolver } from './httpd-include-resolver.js';
 import { HttpdRequirementAnalyzer } from './httpd-requirements.js';
 import { HttpdValueConverter } from './httpd-value-converter.js';
@@ -21,6 +22,7 @@ export type HttpdAddedServices = {
         HttpdValidator: HttpdValidator;
     };
     workspace: {
+        IncludeGraph: HttpdIncludeGraph;
         IncludeResolver: HttpdIncludeResolver;
     };
     semantic: {
@@ -40,12 +42,20 @@ export const HttpdModule: Module<HttpdServices, PartialLangiumServices & HttpdAd
         ValueConverter: () => new HttpdValueConverter()
     },
     validation: {
-        HttpdValidator: services => new HttpdValidator(services.workspace.IncludeResolver)
+        HttpdValidator: services => new HttpdValidator(
+            services.workspace.IncludeResolver,
+            services.workspace.IncludeGraph
+        )
     },
     semantic: {
         Requirements: () => new HttpdRequirementAnalyzer()
     },
     workspace: {
+        IncludeGraph: services => new HttpdIncludeGraph(
+            services.workspace.IncludeResolver,
+            services.shared.workspace.FileSystemProvider,
+            services.parser.LangiumParser
+        ),
         IncludeResolver: services => new HttpdIncludeResolver(services.shared.workspace.FileSystemProvider)
     }
 };

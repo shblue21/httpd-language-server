@@ -18,7 +18,7 @@ export type IncludeResolution =
 export class HttpdIncludeResolver {
     constructor(private readonly fileSystem: FileSystemProvider) {}
 
-    async resolve(document: LangiumDocument, directive: Directive): Promise<IncludeResolution> {
+    async resolve(document: Pick<LangiumDocument, 'uri'>, directive: Directive): Promise<IncludeResolution> {
         if (!isIncludeDirective(directive) || directive.arguments.length !== 1) {
             return { status: 'unknown', targets: [] };
         }

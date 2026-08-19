@@ -9,6 +9,7 @@ import {
 import { apache24Catalog } from './catalog/apache-2.4.js';
 import type { DirectiveKind, DirectiveSpec } from './catalog/types.js';
 import { getNodeContext } from './httpd-context.js';
+import { HttpdIncludeGraph } from './httpd-include-graph.js';
 import { HttpdIncludeResolver, isIncludeDirective } from './httpd-include-resolver.js';
 import type { HttpdServices } from './httpd-module.js';
 
@@ -16,7 +17,7 @@ export function registerValidationChecks(services: HttpdServices): void {
     const registry = services.validation.ValidationRegistry;
     const validator = services.validation.HttpdValidator;
     const checks: ValidationChecks<HttpdAstType> = {
-        HttpdDocument: validator.checkOrphanSectionClosings,
+        HttpdDocument: [validator.checkOrphanSectionClosings, validator.checkIncludeGraph],
         Section: [validator.checkSectionPair, validator.checkSectionDelimiters],
         SectionOpen: validator.checkSectionOpen,
         Directive: [validator.checkDirective, validator.checkIncludeTarget]
@@ -25,7 +26,10 @@ export function registerValidationChecks(services: HttpdServices): void {
 }
 
 export class HttpdValidator {
-    constructor(private readonly includes: HttpdIncludeResolver) {}
+    constructor(
+        private readonly includes: HttpdIncludeResolver,
+        private readonly includeGraph: HttpdIncludeGraph
+    ) {}
 
     checkOrphanSectionClosings(document: HttpdDocument, accept: ValidationAcceptor): void {
         document.orphanClosings.forEach((close, index) => {
@@ -35,6 +39,24 @@ export class HttpdValidator {
                 index
             });
         });
+    }
+
+    async checkIncludeGraph(document: HttpdDocument, accept: ValidationAcceptor): Promise<void> {
+        const graph = await this.includeGraph.build(AstUtils.getDocument(document));
+        for (const cycle of graph.cycles) {
+            accept('error', `Include cycle detected: ${cycle.path.map(uri => uri.path.split('/').at(-1)).join(' -> ')}.`, {
+                node: cycle.origin,
+                property: 'arguments',
+                index: 0
+            });
+        }
+        for (const issue of graph.syntaxIssues) {
+            accept('error', `Included file "${issue.uri.path.split('/').at(-1)}" has syntax errors: ${issue.message}`, {
+                node: issue.origin,
+                property: 'arguments',
+                index: 0
+            });
+        }
     }
 
     checkSectionPair(section: Section, accept: ValidationAcceptor): void {

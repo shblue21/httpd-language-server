@@ -17,7 +17,7 @@ export function getNodeContext(node: AstNode): DirectiveContext {
 
 export function getSectionContext(section: Section | undefined): DirectiveContext | undefined {
     while (section) {
-        const context = sectionNameToContext(section.open.name);
+        const context = getSectionOwnContext(section.open.name);
         if (context) {
             return context;
         }
@@ -30,7 +30,7 @@ export function getRootContext(uriPath: string): DirectiveContext {
     return uriPath.endsWith('/.htaccess') ? 'htaccess' : 'server';
 }
 
-function sectionNameToContext(name: string): DirectiveContext | undefined {
+export function getSectionOwnContext(name: string): DirectiveContext | undefined {
     switch (name.toLowerCase()) {
         case 'virtualhost':
             return 'virtual-host';

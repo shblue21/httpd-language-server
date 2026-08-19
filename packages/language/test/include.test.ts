@@ -17,6 +17,7 @@ beforeAll(async () => {
     await writeFile(join(directory, 'conf.d', '10-first.conf'), 'Listen 80\n');
     await writeFile(join(directory, 'conf.d', '20-second.conf'), 'Listen 443\n');
     await writeFile(join(directory, 'conf.d', 'ignored.txt'), 'ignored\n');
+    await writeFile(join(directory, 'shared.inc'), 'Require all granted\n');
     services = createHttpdServices(NodeFileSystem);
 });
 
@@ -69,5 +70,42 @@ describe('HTTPD includes', () => {
             '10-first.conf',
             '20-second.conf'
         ]);
+    });
+
+    test('tracks occurrence contexts and reports cycles in arbitrary-extension files', async () => {
+        const rootPath = join(directory, 'cycle-httpd.conf');
+        await writeFile(join(directory, 'a.inc'), 'Include b.inc\n');
+        await writeFile(join(directory, 'b.inc'), 'Include cycle-httpd.conf\n');
+        await writeFile(join(directory, 'broken.inc'), '<Directory "/srv/www">\n');
+        await writeFile(rootPath, 'Include a.inc\n');
+
+        const parse = parseHelper<HttpdDocument>(services.Httpd);
+        const document = await parse(`
+<Directory "/srv/www">
+    Include shared.inc
+</Directory>
+<VirtualHost *:80>
+    Include shared.inc
+</VirtualHost>
+Include a.inc
+Include broken.inc
+`, {
+            documentUri: URI.file(rootPath).toString(),
+            validation: true
+        });
+        const graph = await services.Httpd.workspace.IncludeGraph.build(document);
+        const shared = graph.occurrences.filter(occurrence =>
+            occurrence.targetUri.path.endsWith('/shared.inc')
+        );
+
+        expect(shared.map(occurrence => occurrence.context)).toEqual(['directory', 'virtual-host']);
+        expect(document.diagnostics?.map(diagnostic => diagnostic.message)).toContain(
+            'Include cycle detected: cycle-httpd.conf -> a.inc -> b.inc -> cycle-httpd.conf.'
+        );
+        expect(document.diagnostics?.some(diagnostic =>
+            typeof diagnostic.message === 'string'
+            && diagnostic.message.startsWith('Included file "broken.inc" has syntax errors:')
+        )).toBe(true);
+        expect(graph.documents.has(URI.file(join(directory, 'shared.inc')).toString())).toBe(true);
     });
 });
