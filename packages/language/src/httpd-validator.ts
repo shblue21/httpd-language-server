@@ -2,6 +2,7 @@ import { AstUtils, type ValidationAcceptor, type ValidationChecks } from 'langiu
 import {
     type Directive,
     type HttpdAstType,
+    type HttpdDocument,
     type Section,
     isSection
 } from './generated/ast.js';
@@ -11,13 +12,24 @@ export function registerValidationChecks(services: HttpdServices): void {
     const registry = services.validation.ValidationRegistry;
     const validator = services.validation.HttpdValidator;
     const checks: ValidationChecks<HttpdAstType> = {
-        Section: validator.checkSectionPair,
+        HttpdDocument: validator.checkOrphanSectionClosings,
+        Section: [validator.checkSectionPair, validator.checkSectionDelimiters],
         Directive: validator.checkDirectiveContext
     };
     registry.register(checks, validator);
 }
 
 export class HttpdValidator {
+    checkOrphanSectionClosings(document: HttpdDocument, accept: ValidationAcceptor): void {
+        document.orphanClosings.forEach((close, index) => {
+            accept('error', `Closing section </${close.name}> has no matching opening section.`, {
+                node: document,
+                property: 'orphanClosings',
+                index
+            });
+        });
+    }
+
     checkSectionPair(section: Section, accept: ValidationAcceptor): void {
         if (!section.close) {
             return;
@@ -26,6 +38,19 @@ export class HttpdValidator {
             accept('error', `Closing section </${section.close.name}> does not match <${section.open.name}>.`, {
                 node: section.close,
                 property: 'name'
+            });
+        }
+    }
+
+    checkSectionDelimiters(section: Section, accept: ValidationAcceptor): void {
+        if (!section.open.terminated) {
+            accept('error', `Opening section <${section.open.name}> is missing ">".`, {
+                node: section.open
+            });
+        }
+        if (section.close && !section.close.terminated) {
+            accept('error', `Closing section </${section.close.name}> is missing ">".`, {
+                node: section.close
             });
         }
     }

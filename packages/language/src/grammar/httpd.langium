@@ -1,7 +1,9 @@
 grammar Httpd
 
 entry HttpdDocument:
-    EOL* (statements+=Statement EOL+)* statements+=Statement?;
+    EOL*
+    ((statements+=Statement | orphanClosings+=SectionClose) EOL+)*
+    (statements+=Statement | orphanClosings+=SectionClose)?;
 
 Statement:
     Section | Directive;
@@ -12,10 +14,10 @@ Section:
     close=SectionClose;
 
 SectionOpen:
-    '<' name=WORD arguments+=Argument* '>';
+    '<' name=WORD arguments+=Argument* (terminated?='>')?;
 
 SectionClose:
-    '</' name=WORD '>';
+    '</' name=WORD (terminated?='>')?;
 
 Directive:
     name=WORD arguments+=Argument*;

@@ -37,4 +37,23 @@ describe('HTTPD validation', () => {
             'Closing section </directory> does not match <DIRECTORY>.'
         );
     });
+
+    test('recovers after incomplete and orphan section delimiters', async () => {
+        const incomplete = await parse(
+            '<Directory "/srv/www"\nRequire all granted\n</Directory\nListen 80\n'
+        );
+        expect(incomplete.parseResult.value.statements).toHaveLength(2);
+        expect(incomplete.diagnostics?.map(diagnostic => diagnostic.message)).toEqual(
+            expect.arrayContaining([
+                'Opening section <Directory> is missing ">".',
+                'Closing section </Directory> is missing ">".'
+            ])
+        );
+
+        const orphan = await parse('</Location>\nListen 80\n');
+        expect(orphan.parseResult.value.statements).toHaveLength(1);
+        expect(orphan.diagnostics?.map(diagnostic => diagnostic.message)).toContain(
+            'Closing section </Location> has no matching opening section.'
+        );
+    });
 });
