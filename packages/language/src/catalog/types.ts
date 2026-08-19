@@ -1,4 +1,5 @@
 export type DirectiveKind = 'directive' | 'section';
+export type TargetPlatform = 'unix' | 'windows';
 
 export type DirectiveContext =
     | 'server'
@@ -20,6 +21,7 @@ export interface ModuleSpec extends VersionMetadata {
     identifiers: readonly string[];
     fileNames: readonly string[];
     sourceFile?: string;
+    platforms?: readonly TargetPlatform[];
     status: string;
     bundled: boolean;
     dependencies: readonly string[];

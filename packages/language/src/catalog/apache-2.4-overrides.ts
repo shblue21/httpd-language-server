@@ -4,10 +4,12 @@ type ModuleOverride = Partial<Omit<ModuleSpec, 'id'>>;
 type DirectiveOverride = Partial<Omit<DirectiveSpec, 'id' | 'owner' | 'name'>>;
 
 export const APACHE_2_4_MODULE_OVERRIDES: Readonly<Record<string, ModuleOverride>> = {
-    event: { fileNames: ['mod_mpm_event.so', 'mod_mpm_event.dll'] },
-    mpm_winnt: { fileNames: ['mod_mpm_winnt.so', 'mod_mpm_winnt.dll'] },
-    prefork: { fileNames: ['mod_mpm_prefork.so', 'mod_mpm_prefork.dll'] },
-    worker: { fileNames: ['mod_mpm_worker.so', 'mod_mpm_worker.dll'] }
+    event: { fileNames: ['mod_mpm_event.so', 'mod_mpm_event.dll'], platforms: ['unix'] },
+    mod_isapi: { platforms: ['windows'] },
+    mod_unixd: { platforms: ['unix'] },
+    mpm_winnt: { fileNames: ['mod_mpm_winnt.so', 'mod_mpm_winnt.dll'], platforms: ['windows'] },
+    prefork: { fileNames: ['mod_mpm_prefork.so', 'mod_mpm_prefork.dll'], platforms: ['unix'] },
+    worker: { fileNames: ['mod_mpm_worker.so', 'mod_mpm_worker.dll'], platforms: ['unix'] }
 };
 
 export const APACHE_2_4_DIRECTIVE_OVERRIDES: Readonly<Record<string, DirectiveOverride>> = {

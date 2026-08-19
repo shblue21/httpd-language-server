@@ -60,8 +60,9 @@ function formatDirective(
 ): string {
     const metadata = [
         `**Module:** ${directive.modules.map(module => `\`${module}\``).join(' or ')}`,
-        `**Module state:** ${analyzer.moduleState(requirements, directive.modules)}`,
+        `**Module state:** ${formatModuleState(analyzer.moduleState(requirements, directive.modules))}`,
         `**Configuration minimum:** ${requirements.minimumVersion}`,
+        `**Target platform:** ${requirements.targetPlatforms === 'unknown' ? 'unknown' : requirements.targetPlatforms.join(' or ')}`,
         `**Context:** ${directive.contexts.join(', ')}`,
         `**Status:** ${directive.status}`
     ];
@@ -79,6 +80,10 @@ function formatDirective(
         metadata.join('  \n'),
         `[Apache HTTP Server 2.4 documentation](${directive.documentation})`
     ].join('\n\n');
+}
+
+function formatModuleState(state: 'loaded' | 'unknown'): string {
+    return state === 'loaded' ? 'loaded (required)' : 'required; load state unknown';
 }
 
 function containsOffset(node: { offset: number; length: number }, offset: number): boolean {

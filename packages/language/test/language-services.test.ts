@@ -49,7 +49,7 @@ describe('HTTPD language services', () => {
             text: 'Req<|>uire all granted',
             index: 0,
             parseOptions: { documentUri: 'file:///.htaccess' },
-            hover: /\*\*Module state:\*\* unknown[\s\S]*\*\*Requires AllowOverride:\*\* AuthConfig/
+            hover: /\*\*Module state:\*\* required; load state unknown[\s\S]*\*\*Requires AllowOverride:\*\* AuthConfig/
         });
     });
 

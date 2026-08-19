@@ -1,11 +1,12 @@
 import { apache24Catalog } from './catalog/apache-2.4.js';
-import type { DirectiveSpec, HttpdCatalog } from './catalog/index.js';
+import type { DirectiveSpec, HttpdCatalog, TargetPlatform } from './catalog/index.js';
 import { isDirective, isSection, type HttpdDocument, type Statement } from './generated/ast.js';
 
 export type ModuleRequirementState = 'loaded' | 'unknown';
 export type ConditionState = 'active' | 'inactive' | 'unknown';
 
 export interface ModuleRequirement {
+    required: true;
     providers: readonly string[];
     state: ModuleRequirementState;
 }
@@ -17,7 +18,7 @@ export interface HttpdRequirements {
     minimumVersion: string;
     modules: readonly ModuleRequirement[];
     serverRoot?: string;
-    targetPlatform: 'unknown';
+    targetPlatforms: readonly TargetPlatform[] | 'unknown';
 }
 
 export class HttpdRequirementAnalyzer {
@@ -29,7 +30,8 @@ export class HttpdRequirementAnalyzer {
             defines: new Map(),
             loadedModules: new Set(['core']),
             minimumVersion: '2.4.0',
-            modules: new Map()
+            modules: new Map(),
+            targetPlatforms: undefined
         };
         this.visitStatements(document.statements, state, 'active');
         return {
@@ -39,7 +41,9 @@ export class HttpdRequirementAnalyzer {
             minimumVersion: state.minimumVersion,
             modules: [...state.modules.values()],
             serverRoot: state.serverRoot,
-            targetPlatform: 'unknown'
+            targetPlatforms: state.targetPlatforms
+                ? [...state.targetPlatforms].sort()
+                : 'unknown'
         };
     }
 
@@ -153,6 +157,7 @@ export class HttpdRequirementAnalyzer {
             const current = state.modules.get(key);
             const requirement: ModuleRequirement = {
                 providers,
+                required: true,
                 state: providers.some(provider => state.loadedModules.has(provider))
                     ? 'loaded'
                     : 'unknown'
@@ -160,7 +165,24 @@ export class HttpdRequirementAnalyzer {
             if (!current || current.state === 'loaded') {
                 state.modules.set(key, requirement);
             }
+            this.updatePlatforms(providers, state);
         }
+    }
+
+    private updatePlatforms(providers: readonly string[], state: MutableRequirements): void {
+        const modules = providers.map(provider => this.catalog.getModule(provider));
+        if (modules.some(module => !module?.platforms || module.platforms.length === 0)) {
+            return;
+        }
+
+        const candidates = new Set(modules.flatMap(module => module?.platforms ?? []));
+        if (!state.targetPlatforms) {
+            state.targetPlatforms = candidates;
+            return;
+        }
+        state.targetPlatforms = new Set(
+            [...state.targetPlatforms].filter(platform => candidates.has(platform))
+        );
     }
 }
 
@@ -171,6 +193,7 @@ interface MutableRequirements {
     minimumVersion: string;
     modules: Map<string, ModuleRequirement>;
     serverRoot?: string;
+    targetPlatforms?: Set<TargetPlatform>;
 }
 
 function isConditionalSection(name: string): boolean {

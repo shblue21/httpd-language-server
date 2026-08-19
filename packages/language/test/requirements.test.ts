@@ -23,6 +23,7 @@ ServerRoot "/srv/httpd"
 Define STAGE production
 ProxyPass /api http://backend.example
 CacheSocache shmcb
+ChrootDir /srv/chroot
 `);
         const requirements = services.semantic.Requirements.analyze(document.parseResult.value);
 
@@ -30,10 +31,10 @@ CacheSocache shmcb
         expect(requirements.defines.get('STAGE')).toBe('production');
         expect(requirements.minimumVersion).toBe('2.4.5');
         expect(requirements.serverRoot).toBe('/srv/httpd');
-        expect(requirements.targetPlatform).toBe('unknown');
+        expect(requirements.targetPlatforms).toEqual(['unix']);
         expect(requirements.modules).toEqual(expect.arrayContaining([
-            { providers: ['mod_proxy'], state: 'loaded' },
-            { providers: ['mod_cache_socache'], state: 'unknown' }
+            { providers: ['mod_proxy'], required: true, state: 'loaded' },
+            { providers: ['mod_cache_socache'], required: true, state: 'unknown' }
         ]));
     });
 
