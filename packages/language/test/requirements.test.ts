@@ -33,4 +33,40 @@ CacheSocache shmcb
             { providers: ['mod_cache_socache'], state: 'unknown' }
         ]));
     });
+
+    test('keeps unresolved conditions unknown and skips proven inactive branches', async () => {
+        const document = await parse(`
+LoadModule proxy_module modules/mod_proxy.so
+Define ENABLED yes
+<IfDefine ENABLED>
+    Define ACTIVE yes
+</IfDefine>
+<IfDefine !ENABLED>
+    Define INACTIVE yes
+</IfDefine>
+<IfModule proxy_module>
+    Define MODULE_ACTIVE yes
+</IfModule>
+<IfModule !mod_proxy.c>
+    Define MODULE_INACTIVE yes
+</IfModule>
+<IfVersion >= 2.4.0>
+    Define VERSION_UNKNOWN yes
+</IfVersion>
+`);
+        const requirements = services.semantic.Requirements.analyze(document.parseResult.value);
+
+        expect(requirements.conditions.map(condition => condition.state)).toEqual([
+            'active',
+            'inactive',
+            'active',
+            'inactive',
+            'unknown'
+        ]);
+        expect([...requirements.defines.keys()]).toEqual([
+            'ENABLED',
+            'ACTIVE',
+            'MODULE_ACTIVE'
+        ]);
+    });
 });

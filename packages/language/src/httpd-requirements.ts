@@ -3,6 +3,7 @@ import type { DirectiveSpec, HttpdCatalog } from './catalog/index.js';
 import { isDirective, isSection, type HttpdDocument, type Statement } from './generated/ast.js';
 
 export type ModuleRequirementState = 'loaded' | 'unknown';
+export type ConditionState = 'active' | 'inactive' | 'unknown';
 
 export interface ModuleRequirement {
     providers: readonly string[];
@@ -10,6 +11,7 @@ export interface ModuleRequirement {
 }
 
 export interface HttpdRequirements {
+    conditions: readonly { name: string; state: ConditionState }[];
     defines: ReadonlyMap<string, string | true>;
     loadedModules: ReadonlySet<string>;
     minimumVersion: string;
@@ -21,13 +23,15 @@ export class HttpdRequirementAnalyzer {
 
     analyze(document: HttpdDocument): HttpdRequirements {
         const state: MutableRequirements = {
+            conditions: [],
             defines: new Map(),
             loadedModules: new Set(['core']),
             minimumVersion: '2.4.0',
             modules: new Map()
         };
-        this.visitStatements(document.statements, state);
+        this.visitStatements(document.statements, state, 'active');
         return {
+            conditions: state.conditions,
             defines: state.defines,
             loadedModules: state.loadedModules,
             minimumVersion: state.minimumVersion,
@@ -41,16 +45,67 @@ export class HttpdRequirementAnalyzer {
             : 'unknown';
     }
 
-    private visitStatements(statements: readonly Statement[], state: MutableRequirements): void {
+    private visitStatements(
+        statements: readonly Statement[],
+        state: MutableRequirements,
+        parentCondition: Exclude<ConditionState, 'inactive'>
+    ): void {
         for (const statement of statements) {
             if (isDirective(statement)) {
-                this.updateFacts(statement.name, statement.arguments, state);
+                if (parentCondition === 'active') {
+                    this.updateFacts(statement.name, statement.arguments, state);
+                }
                 this.recordRequirements(statement.name, 'directive', state);
             } else if (isSection(statement)) {
                 this.recordRequirements(statement.open.name, 'section', state);
-                this.visitStatements(statement.statements, state);
+                const condition = this.evaluateCondition(
+                    statement.open.name,
+                    statement.open.arguments,
+                    state
+                );
+                const effective = parentCondition === 'unknown' && condition !== 'inactive'
+                    ? 'unknown'
+                    : condition;
+                if (isConditionalSection(statement.open.name)) {
+                    state.conditions.push({ name: statement.open.name, state: effective });
+                }
+                if (effective !== 'inactive') {
+                    this.visitStatements(statement.statements, state, effective);
+                }
             }
         }
+    }
+
+    private evaluateCondition(
+        name: string,
+        args: readonly string[],
+        state: MutableRequirements
+    ): ConditionState {
+        const argument = args[0] ?? '';
+        const negated = argument.startsWith('!');
+        const value = negated ? argument.slice(1) : argument;
+        let knownTrue = false;
+
+        switch (name.toLowerCase()) {
+            case 'ifdefine':
+                knownTrue = state.defines.has(value);
+                break;
+            case 'ifmodule': {
+                const module = this.catalog.getModuleByIdentifier(value)
+                    ?? this.catalog.getModuleByFileName(value);
+                knownTrue = Boolean(module && state.loadedModules.has(module.id));
+                break;
+            }
+            case 'ifversion':
+                return 'unknown';
+            default:
+                return 'active';
+        }
+
+        if (!knownTrue) {
+            return 'unknown';
+        }
+        return negated ? 'inactive' : 'active';
     }
 
     private updateFacts(name: string, args: readonly string[], state: MutableRequirements): void {
@@ -103,10 +158,16 @@ export class HttpdRequirementAnalyzer {
 }
 
 interface MutableRequirements {
+    conditions: Array<{ name: string; state: ConditionState }>;
     defines: Map<string, string | true>;
     loadedModules: Set<string>;
     minimumVersion: string;
     modules: Map<string, ModuleRequirement>;
+}
+
+function isConditionalSection(name: string): boolean {
+    const normalized = name.toLowerCase();
+    return normalized === 'ifdefine' || normalized === 'ifmodule' || normalized === 'ifversion';
 }
 
 function compareVersions(left: string, right: string): number {
