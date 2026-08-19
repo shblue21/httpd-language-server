@@ -5,6 +5,7 @@ export class HttpdCatalog {
     readonly modules: readonly ModuleSpec[];
 
     private readonly directivesByName = new Map<string, DirectiveSpec[]>();
+    private readonly directiveIds = new Set<string>();
     private readonly modulesById = new Map<string, ModuleSpec>();
 
     constructor(modules: readonly ModuleSpec[], directives: readonly DirectiveSpec[]) {
@@ -20,6 +21,11 @@ export class HttpdCatalog {
         }
 
         for (const directive of directives) {
+            if (this.directiveIds.has(directive.id)) {
+                throw new Error(`Duplicate HTTPD directive catalog entry: ${directive.id}`);
+            }
+            this.directiveIds.add(directive.id);
+
             for (const module of directive.modules) {
                 if (!this.modulesById.has(normalizeName(module))) {
                     throw new Error(`Unknown module ${module} for directive ${directive.name}.`);

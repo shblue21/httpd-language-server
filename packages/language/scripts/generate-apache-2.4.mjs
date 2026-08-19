@@ -112,7 +112,8 @@ export const APACHE_2_4_CATALOG_SOURCE = ${JSON.stringify({
     tag: APACHE_TAG,
     commit: APACHE_COMMIT,
     moduleCount: modules.length,
-    directiveCount: directives.length
+    directiveCount: directives.length,
+    referenceCount: references.length
 }, null, 4)} as const;
 
 export const APACHE_2_4_MODULES: readonly ModuleSpec[] = ${JSON.stringify(modules, null, 4)};
