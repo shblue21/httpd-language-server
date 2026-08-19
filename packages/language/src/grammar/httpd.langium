@@ -23,7 +23,7 @@ SectionClose:
     '</' name=WORD (terminated?='>')?;
 
 Directive:
-    name=WORD arguments+=Argument* (inlineComment=COMMENT)?;
+    name=WORD arguments+=Argument* (arguments+=COMMENT)?;
 
 Argument returns string:
     STRING | SECTION_OPERATOR | WORD;

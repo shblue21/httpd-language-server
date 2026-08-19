@@ -6,7 +6,16 @@ import {
     type URI
 } from 'langium';
 import type { DirectiveContext } from './catalog/types.js';
-import { validateCatalogEntry } from './httpd-catalog-validation.js';
+import { apache24Catalog } from './catalog/apache-2.4.js';
+import {
+    validateArgumentShapes,
+    validateCatalogEntry
+} from './httpd-catalog-validation.js';
+import {
+    evaluateCondition,
+    isConditionalSection,
+    type ConditionState
+} from './httpd-conditions.js';
 import { getRootContext, getSectionOwnContext } from './httpd-context.js';
 import { HttpdIncludeResolver, isIncludeDirective } from './httpd-include-resolver.js';
 import {
@@ -20,6 +29,7 @@ import {
 const MAX_OCCURRENCES = 1_000;
 
 export interface IncludeOccurrence {
+    condition: Exclude<ConditionState, 'inactive'>;
     context: DirectiveContext;
     order: number;
     source: Directive;
@@ -28,11 +38,13 @@ export interface IncludeOccurrence {
 }
 
 export interface IncludeCycle {
+    condition: Exclude<ConditionState, 'inactive'>;
     origin: Directive;
     path: readonly URI[];
 }
 
 export interface IncludedSyntaxIssue {
+    condition: Exclude<ConditionState, 'inactive'>;
     message: string;
     origin: Directive;
     uri: URI;
@@ -45,12 +57,20 @@ export interface IncludedSemanticIssue {
     uri: URI;
 }
 
+export interface MissingInclude {
+    condition: Exclude<ConditionState, 'inactive'>;
+    origin: Directive;
+    path: string;
+}
+
 export interface IncludeGraph {
     cycles: readonly IncludeCycle[];
     documents: ReadonlyMap<string, ParseResult<HttpdDocument>>;
+    missingIncludes: readonly MissingInclude[];
     occurrences: readonly IncludeOccurrence[];
     semanticIssues: readonly IncludedSemanticIssue[];
     syntaxIssues: readonly IncludedSyntaxIssue[];
+    truncatedIncludes: readonly Directive[];
 }
 
 export class HttpdIncludeGraph {
@@ -64,14 +84,20 @@ export class HttpdIncludeGraph {
         const state: MutableGraph = {
             cycles: [],
             documents: new Map([[root.uri.toString(), root.parseResult]]),
+            missingIncludes: [],
             occurrences: [],
             order: 0,
-            reportedSyntaxIssues: new Set(),
             semanticIssues: [],
-            syntaxIssues: []
+            syntaxIssues: [],
+            truncatedIncludes: []
         };
         const configurationBase = await this.includes.getConfigurationBase(root);
-        const definitions = this.includes.getDefinitions(root);
+        const facts: GraphFacts = {
+            defines: new Map(),
+            loadedModuleAliases: new Set(),
+            loadedModules: new Set(['core']),
+            undefinedDefines: new Set()
+        };
         await this.visitStatements(
             root.parseResult.value.statements,
             root.uri,
@@ -79,7 +105,8 @@ export class HttpdIncludeGraph {
             [root.uri],
             undefined,
             configurationBase,
-            definitions,
+            'active',
+            facts,
             state
         );
         return state;
@@ -92,23 +119,37 @@ export class HttpdIncludeGraph {
         stack: readonly URI[],
         rootOrigin: Directive | undefined,
         configurationBase: URI,
-        definitions: ReadonlyMap<string, string | true>,
+        condition: Exclude<ConditionState, 'inactive'>,
+        facts: GraphFacts,
         state: MutableGraph
     ): Promise<void> {
         for (const statement of statements) {
-            if (state.occurrences.length >= MAX_OCCURRENCES) {
-                return;
-            }
             if (isSection(statement)) {
                 this.recordSemanticIssues(
                     statement.open.name,
                     'section',
-                    statement.open.arguments.length,
+                    statement.open.arguments,
                     context,
                     uri,
                     rootOrigin,
+                    condition,
                     state
                 );
+                const conditional = isConditionalSection(statement.open.name);
+                const ownCondition = conditional
+                    ? evaluateCondition(statement.open.name, statement.open.arguments, facts)
+                    : 'active';
+                const effectiveCondition = conditional
+                    ? condition === 'unknown' && ownCondition !== 'inactive'
+                        ? 'unknown'
+                        : ownCondition
+                    : condition;
+                if (effectiveCondition === 'inactive') {
+                    continue;
+                }
+                const branchFacts = conditional && ownCondition === 'unknown'
+                    ? cloneFacts(facts)
+                    : facts;
                 await this.visitStatements(
                     statement.statements,
                     uri,
@@ -116,29 +157,36 @@ export class HttpdIncludeGraph {
                     stack,
                     rootOrigin,
                     configurationBase,
-                    definitions,
+                    effectiveCondition,
+                    branchFacts,
                     state
                 );
+                if (conditional && ownCondition === 'unknown') {
+                    joinUnknownFacts(facts, branchFacts);
+                }
             } else if (isDirective(statement)) {
                 this.recordSemanticIssues(
                     statement.name,
                     'directive',
-                    statement.arguments.length,
+                    statement.arguments,
                     context,
                     uri,
                     rootOrigin,
+                    condition,
                     state
                 );
+                this.updateFacts(statement, facts);
                 if (isIncludeDirective(statement)) {
                     await this.visitInclude(
                         statement,
                         uri,
                         context,
                         stack,
-                    rootOrigin,
-                    configurationBase,
-                    definitions,
-                    state
+                        rootOrigin,
+                        configurationBase,
+                        condition,
+                        facts,
+                        state
                     );
                 }
             }
@@ -152,22 +200,42 @@ export class HttpdIncludeGraph {
         stack: readonly URI[],
         rootOrigin: Directive | undefined,
         configurationBase: URI,
-        definitions: ReadonlyMap<string, string | true>,
+        condition: Exclude<ConditionState, 'inactive'>,
+        facts: GraphFacts,
         state: MutableGraph
     ): Promise<void> {
         const resolution = await this.includes.resolve(
             { uri: sourceUri },
             directive,
             configurationBase,
-            definitions
+            facts.defines
         );
         if (resolution.status !== 'resolved') {
+            if (
+                resolution.status === 'missing'
+                && directive.name.toLowerCase() === 'include'
+                && directive.arguments[0]
+            ) {
+                state.missingIncludes.push({
+                    condition,
+                    origin: rootOrigin ?? directive,
+                    path: directive.arguments[0]
+                });
+            }
             return;
+        }
+        if (resolution.truncated) {
+            addUniqueDirective(state.truncatedIncludes, rootOrigin ?? directive);
         }
 
         for (const targetUri of resolution.targets) {
             const origin = rootOrigin ?? directive;
+            if (state.occurrences.length >= MAX_OCCURRENCES) {
+                addUniqueDirective(state.truncatedIncludes, origin);
+                return;
+            }
             state.occurrences.push({
+                condition,
                 context,
                 order: state.order++,
                 source: directive,
@@ -177,11 +245,15 @@ export class HttpdIncludeGraph {
 
             const cycleStart = stack.findIndex(uri => uri.toString() === targetUri.toString());
             if (cycleStart !== -1) {
-                state.cycles.push({ origin, path: [...stack.slice(cycleStart), targetUri] });
+                state.cycles.push({
+                    condition,
+                    origin,
+                    path: [...stack.slice(cycleStart), targetUri]
+                });
                 continue;
             }
 
-            const result = await this.getDocument(targetUri, origin, state);
+            const result = await this.getDocument(targetUri, origin, condition, state);
             if (!result) {
                 continue;
             }
@@ -192,7 +264,8 @@ export class HttpdIncludeGraph {
                 [...stack, targetUri],
                 origin,
                 configurationBase,
-                definitions,
+                condition,
+                facts,
                 state
             );
         }
@@ -201,6 +274,7 @@ export class HttpdIncludeGraph {
     private async getDocument(
         uri: URI,
         origin: Directive,
+        condition: Exclude<ConditionState, 'inactive'>,
         state: MutableGraph
     ): Promise<ParseResult<HttpdDocument> | undefined> {
         const key = uri.toString();
@@ -214,12 +288,9 @@ export class HttpdIncludeGraph {
             }
         }
 
-        if (
-            !state.reportedSyntaxIssues.has(key)
-            && (result.lexerErrors.length > 0 || result.parserErrors.length > 0)
-        ) {
-            state.reportedSyntaxIssues.add(key);
+        if (result.lexerErrors.length > 0 || result.parserErrors.length > 0) {
             state.syntaxIssues.push({
+                condition,
                 message: result.lexerErrors[0]?.message ?? result.parserErrors[0].message,
                 origin,
                 uri
@@ -231,22 +302,59 @@ export class HttpdIncludeGraph {
     private recordSemanticIssues(
         name: string,
         kind: 'directive' | 'section',
-        argumentCount: number,
+        args: readonly string[],
         context: DirectiveContext,
         uri: URI,
         rootOrigin: Directive | undefined,
+        condition: Exclude<ConditionState, 'inactive'>,
         state: MutableGraph
     ): void {
         if (!rootOrigin) {
             return;
         }
-        for (const issue of validateCatalogEntry(name, kind, argumentCount, context)) {
+        const issues = [
+            ...validateCatalogEntry(name, kind, args.length, context),
+            ...validateArgumentShapes(name, kind, args)
+        ];
+        for (const issue of issues) {
             state.semanticIssues.push({
                 message: issue.message,
                 origin: rootOrigin,
-                severity: issue.severity,
+                severity: condition === 'unknown' ? 'warning' : issue.severity,
                 uri
             });
+        }
+    }
+
+    private updateFacts(directive: Directive, facts: GraphFacts): void {
+        const [first, second] = directive.arguments;
+        switch (directive.name.toLowerCase()) {
+            case 'define':
+                if (first) {
+                    facts.defines.set(first, second ?? true);
+                    facts.undefinedDefines.delete(first);
+                }
+                break;
+            case 'undefine':
+                if (first) {
+                    facts.defines.delete(first);
+                    facts.undefinedDefines.add(first);
+                }
+                break;
+            case 'loadmodule': {
+                if (first) {
+                    facts.loadedModuleAliases.add(first.toLowerCase());
+                }
+                if (second) {
+                    facts.loadedModuleAliases.add(basename(second).toLowerCase());
+                }
+                const module = apache24Catalog.getModuleByIdentifier(first ?? '')
+                    ?? apache24Catalog.getModuleByFileName(second ?? '');
+                if (module) {
+                    facts.loadedModules.add(module.id);
+                }
+                break;
+            }
         }
     }
 }
@@ -254,9 +362,67 @@ export class HttpdIncludeGraph {
 interface MutableGraph {
     cycles: IncludeCycle[];
     documents: Map<string, ParseResult<HttpdDocument>>;
+    missingIncludes: MissingInclude[];
     occurrences: IncludeOccurrence[];
     order: number;
-    reportedSyntaxIssues: Set<string>;
     semanticIssues: IncludedSemanticIssue[];
     syntaxIssues: IncludedSyntaxIssue[];
+    truncatedIncludes: Directive[];
+}
+
+interface GraphFacts {
+    defines: Map<string, string | true>;
+    loadedModuleAliases: Set<string>;
+    loadedModules: Set<string>;
+    undefinedDefines: Set<string>;
+}
+
+function cloneFacts(facts: GraphFacts): GraphFacts {
+    return {
+        defines: new Map(facts.defines),
+        loadedModuleAliases: new Set(facts.loadedModuleAliases),
+        loadedModules: new Set(facts.loadedModules),
+        undefinedDefines: new Set(facts.undefinedDefines)
+    };
+}
+
+function joinUnknownFacts(facts: GraphFacts, branch: GraphFacts): void {
+    const names = new Set([
+        ...facts.defines.keys(),
+        ...facts.undefinedDefines,
+        ...branch.defines.keys(),
+        ...branch.undefinedDefines
+    ]);
+    for (const name of names) {
+        const current = defineFact(facts, name);
+        const possible = defineFact(branch, name);
+        if (current.kind === possible.kind && current.value === possible.value) {
+            continue;
+        }
+        facts.defines.delete(name);
+        facts.undefinedDefines.delete(name);
+    }
+}
+
+function defineFact(
+    facts: GraphFacts,
+    name: string
+): { kind: 'defined' | 'undefined' | 'unknown'; value?: string | true } {
+    if (facts.defines.has(name)) {
+        return { kind: 'defined', value: facts.defines.get(name) };
+    }
+    if (facts.undefinedDefines.has(name)) {
+        return { kind: 'undefined' };
+    }
+    return { kind: 'unknown' };
+}
+
+function basename(path: string): string {
+    return path.split(/[\\/]/).at(-1) ?? path;
+}
+
+function addUniqueDirective(directives: Directive[], directive: Directive): void {
+    if (!directives.includes(directive)) {
+        directives.push(directive);
+    }
 }

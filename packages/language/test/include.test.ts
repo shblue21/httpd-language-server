@@ -17,8 +17,14 @@ beforeAll(async () => {
     await mkdir(join(directory, 'conf.d'));
     await writeFile(join(directory, 'conf.d', '10-first.conf'), 'Listen 80\n');
     await writeFile(join(directory, 'conf.d', '20-second.conf'), 'Listen 443\n');
+    await writeFile(join(directory, 'conf.d', 'A-upper.conf'), 'Listen 8080\n');
+    await writeFile(join(directory, 'conf.d', 'a-lower.conf'), 'Listen 8081\n');
     await writeFile(join(directory, 'conf.d', 'ignored.txt'), 'ignored\n');
     await writeFile(join(directory, 'shared.inc'), 'Require all granted\n');
+    await writeFile(
+        join(directory, 'module.inc'),
+        'LoadModule headers_module modules/mod_headers.so\nHeader set X-Test enabled\n'
+    );
     services = createHttpdServices(NodeFileSystem);
 });
 
@@ -62,6 +68,27 @@ describe('HTTPD includes', () => {
             URI.file(join(directory, 'unrelated.conf'))
         )).toBe(false);
         expect(document.diagnostics).toHaveLength(0);
+    });
+
+    test('includes logical configuration facts in requirement analysis', async () => {
+        const parse = parseHelper<HttpdDocument>(services.Httpd);
+        const document = await parse('Include module.inc\n', {
+            documentUri: URI.file(join(directory, 'requirements.httpd')).toString(),
+            validation: true
+        });
+        const graph = await services.Httpd.workspace.IncludeGraph.build(document);
+        const requirements = services.Httpd.semantic.Requirements.analyzeConfiguration(
+            document.parseResult.value,
+            graph
+        );
+
+        expect(requirements.loadedModules).toContain('mod_headers');
+        expect(requirements.modules).toContainEqual({
+            condition: 'active',
+            providers: ['mod_headers'],
+            required: true,
+            state: 'loaded'
+        });
     });
 
     test('uses a discoverable ServerRoot as the include base', async () => {
@@ -111,6 +138,30 @@ describe('HTTPD includes', () => {
         expect(links?.[0].targetUri).toBe(URI.file(join(directory, 'fragment.inc')).toString());
     });
 
+    test('applies definitions in source order', async () => {
+        const parse = parseHelper<HttpdDocument>(services.Httpd);
+        const document = await parse(`
+Define SITE fragment
+Include \${SITE}.inc
+UnDefine SITE
+Include \${SITE}.inc
+`, {
+            documentUri: URI.file(join(directory, 'ordered-defines.httpd')).toString(),
+            validation: true
+        });
+        const first = await services.Httpd.lsp.DefinitionProvider?.getDefinition(document, {
+            textDocument: { uri: document.uri.toString() },
+            position: { line: 2, character: 12 }
+        });
+        const second = await services.Httpd.lsp.DefinitionProvider?.getDefinition(document, {
+            textDocument: { uri: document.uri.toString() },
+            position: { line: 4, character: 12 }
+        });
+
+        expect(first?.[0].targetUri).toBe(URI.file(join(directory, 'fragment.inc')).toString());
+        expect(second).toBeUndefined();
+    });
+
     test('reports missing required includes but not missing optional includes', async () => {
         const parse = parseHelper<HttpdDocument>(services.Httpd);
         const document = await parse('Include missing.inc\nIncludeOptional optional.inc\n', {
@@ -121,6 +172,40 @@ describe('HTTPD includes', () => {
         expect(document.diagnostics?.map(diagnostic => diagnostic.message)).toEqual([
             'Cannot resolve required include "missing.inc" from this workspace.'
         ]);
+    });
+
+    test('skips inactive includes and preserves unknown branches as conditional warnings', async () => {
+        const parse = parseHelper<HttpdDocument>(services.Httpd);
+        const document = await parse(`
+Define ON
+<IfDefine !ON>
+    Include inactive-missing.inc
+</IfDefine>
+<IfVersion >= 2.4.0>
+    Include conditional-missing.inc
+</IfVersion>
+Define MAYBE yes
+<IfVersion >= 2.4.0>
+    UnDefine MAYBE
+</IfVersion>
+<IfDefine MAYBE>
+    Include joined-missing.inc
+</IfDefine>
+`, {
+            documentUri: URI.file(join(directory, 'conditions.httpd')).toString(),
+            validation: true
+        });
+        const messages = document.diagnostics?.map(diagnostic => diagnostic.message);
+
+        expect(messages).not.toContain(
+            'Cannot resolve required include "inactive-missing.inc" from this workspace.'
+        );
+        expect(messages).toContain(
+            'Conditional include "conditional-missing.inc" cannot be resolved from this workspace.'
+        );
+        expect(messages).toContain(
+            'Conditional include "joined-missing.inc" cannot be resolved from this workspace.'
+        );
     });
 
     test('resolves wildcard includes in alphabetical order', async () => {
@@ -136,7 +221,9 @@ describe('HTTPD includes', () => {
 
         expect(links?.map(link => URI.parse(link.targetUri).path.split('/').at(-1))).toEqual([
             '10-first.conf',
-            '20-second.conf'
+            '20-second.conf',
+            'A-upper.conf',
+            'a-lower.conf'
         ]);
     });
 

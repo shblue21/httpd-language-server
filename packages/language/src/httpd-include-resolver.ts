@@ -5,14 +5,20 @@ import {
     type LangiumDocument
 } from 'langium';
 import { minimatch } from 'minimatch';
-import { isDirective, isHttpdDocument, type Directive } from './generated/ast.js';
+import {
+    isDirective,
+    isHttpdDocument,
+    isSection,
+    type Directive,
+    type Statement
+} from './generated/ast.js';
 import { HttpdServiceRegistry } from './httpd-service-registry.js';
 
 const MAX_DIRECTORY_DEPTH = 32;
 const MAX_INCLUDED_FILES = 1_000;
 
 export type IncludeResolution =
-    | { status: 'resolved'; targets: readonly URI[] }
+    | { status: 'resolved'; targets: readonly URI[]; truncated: boolean }
     | { status: 'missing'; targets: readonly [] }
     | { status: 'unknown'; targets: readonly [] };
 
@@ -32,7 +38,7 @@ export class HttpdIncludeResolver {
             return { status: 'unknown', targets: [] };
         }
 
-        const variables = definitions ?? this.getDefinitions(document);
+        const variables = definitions ?? this.getDefinitions(document, directive);
         const path = substituteVariables(directive.arguments[0], variables);
         if (path === undefined) {
             return { status: 'unknown', targets: [] };
@@ -48,12 +54,12 @@ export class HttpdIncludeResolver {
             if (pathEscapesBase(normalized)) {
                 return { status: 'unknown', targets: [] };
             }
-            const targets = hasGlob(normalized)
+            const result = hasGlob(normalized)
                 ? await this.resolveGlob(base, normalized)
                 : await this.resolvePath(base, normalized);
-            if (targets.length > 0) {
-                targets.forEach(target => this.serviceRegistry.registerIncluded(target));
-                return { status: 'resolved', targets };
+            if (result.targets.length > 0 || result.truncated) {
+                result.targets.forEach(target => this.serviceRegistry.registerIncluded(target));
+                return { status: 'resolved', ...result };
             }
         } catch {
             return { status: 'unknown', targets: [] };
@@ -80,8 +86,15 @@ export class HttpdIncludeResolver {
             return fallback;
         }
 
-        const expanded = substituteVariables(serverRoot.arguments[0], this.getDefinitions(document));
-        if (expanded === undefined || isAbsoluteConfigurationPath(expanded)) {
+        const expanded = substituteVariables(
+            serverRoot.arguments[0],
+            this.getDefinitions(document, serverRoot)
+        );
+        if (
+            expanded === undefined
+            || isAbsoluteConfigurationPath(expanded)
+            || pathEscapesBase(expanded.replaceAll('\\', '/'))
+        ) {
             return fallback;
         }
         const candidate = resolveConfigurationPath(
@@ -94,7 +107,8 @@ export class HttpdIncludeResolver {
     }
 
     getDefinitions(
-        document: Partial<Pick<LangiumDocument, 'parseResult'>>
+        document: Partial<Pick<LangiumDocument, 'parseResult'>>,
+        before?: Directive
     ): ReadonlyMap<string, string | true> {
         const definitions = new Map<string, string | true>();
         const root = document.parseResult?.value;
@@ -102,36 +116,27 @@ export class HttpdIncludeResolver {
             return definitions;
         }
 
-        for (const statement of root.statements) {
-            if (!isDirective(statement) || !statement.arguments[0]) {
-                continue;
-            }
-            if (statement.name.toLowerCase() === 'define') {
-                definitions.set(statement.arguments[0], statement.arguments[1] ?? true);
-            } else if (statement.name.toLowerCase() === 'undefine') {
-                definitions.delete(statement.arguments[0]);
-            }
-        }
+        collectDefinitions(root.statements, definitions, before);
         return definitions;
     }
 
-    private async resolvePath(base: URI, path: string): Promise<readonly URI[]> {
+    private async resolvePath(base: URI, path: string): Promise<ResolvedTargets> {
         const target = resolveFromBase(base, path);
         if (!await this.fileSystem.exists(target)) {
-            return [];
+            return { targets: [], truncated: false };
         }
 
         const stat = await this.fileSystem.stat(target);
         if (stat.isFile) {
-            return [target];
+            return { targets: [target], truncated: false };
         }
         if (stat.isDirectory) {
             return this.collectFiles(target, true);
         }
-        return [];
+        return { targets: [], truncated: false };
     }
 
-    private async resolveGlob(baseUri: URI, path: string): Promise<readonly URI[]> {
+    private async resolveGlob(baseUri: URI, path: string): Promise<ResolvedTargets> {
         const firstGlob = path.search(/[*?[]/);
         const prefixEnd = path.lastIndexOf('/', firstGlob);
         const basePath = prefixEnd === -1 ? '' : path.slice(0, prefixEnd);
@@ -140,40 +145,82 @@ export class HttpdIncludeResolver {
             ? resolveFromBase(baseUri, basePath)
             : baseUri;
         if (!await this.fileSystem.exists(base) || !(await this.fileSystem.stat(base)).isDirectory) {
-            return [];
+            return { targets: [], truncated: false };
         }
 
         const candidates = await this.collectFiles(base, pattern.includes('/'));
-        return candidates.filter(candidate =>
-            minimatch(UriUtils.relative(base, candidate), pattern, {
-                dot: true,
+        return {
+            targets: candidates.targets.filter(candidate =>
+                minimatch(UriUtils.relative(base, candidate), pattern, {
+                dot: false,
+                nobrace: true,
+                nocomment: true,
+                noext: true,
+                noglobstar: true,
+                nonegate: true,
                 windowsPathsNoEscape: true
-            })
-        );
+                })
+            ),
+            truncated: candidates.truncated
+        };
     }
 
-    private async collectFiles(directory: URI, recursive: boolean): Promise<readonly URI[]> {
+    private async collectFiles(directory: URI, recursive: boolean): Promise<ResolvedTargets> {
         const files: URI[] = [];
         const pending: Array<{ directory: URI; depth: number }> = [{ directory, depth: 0 }];
+        let truncated = false;
 
         while (pending.length > 0 && files.length < MAX_INCLUDED_FILES) {
             const current = pending.shift()!;
             const entries = await this.fileSystem.readDirectory(current.directory);
-            entries.sort((left, right) => left.uri.path.localeCompare(right.uri.path));
+            entries.sort((left, right) => comparePaths(left.uri.path, right.uri.path));
             for (const entry of entries) {
                 if (entry.isFile) {
                     files.push(entry.uri);
                 } else if (recursive && entry.isDirectory && current.depth < MAX_DIRECTORY_DEPTH) {
                     pending.push({ directory: entry.uri, depth: current.depth + 1 });
+                } else if (recursive && entry.isDirectory) {
+                    truncated = true;
                 }
                 if (files.length >= MAX_INCLUDED_FILES) {
+                    truncated = true;
                     break;
                 }
             }
         }
 
-        return files.sort((left, right) => left.path.localeCompare(right.path));
+        return {
+            targets: files.sort((left, right) => comparePaths(left.path, right.path)),
+            truncated: truncated || pending.length > 0
+        };
     }
+}
+
+interface ResolvedTargets {
+    targets: readonly URI[];
+    truncated: boolean;
+}
+
+function collectDefinitions(
+    statements: readonly Statement[],
+    definitions: Map<string, string | true>,
+    before: Directive | undefined
+): boolean {
+    for (const statement of statements) {
+        if (statement === before) {
+            return true;
+        }
+        if (isDirective(statement) && statement.arguments[0]) {
+            if (statement.name.toLowerCase() === 'define') {
+                definitions.set(statement.arguments[0], statement.arguments[1] ?? true);
+            } else if (statement.name.toLowerCase() === 'undefine') {
+                definitions.delete(statement.arguments[0]);
+            }
+        } else if (isSection(statement) && collectDefinitions(statement.statements, definitions, before)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 export function isIncludeDirective(directive: Directive): boolean {
@@ -215,6 +262,10 @@ function pathEscapesBase(path: string): boolean {
         }
     }
     return false;
+}
+
+function comparePaths(left: string, right: string): number {
+    return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function substituteVariables(

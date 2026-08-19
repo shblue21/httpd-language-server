@@ -7,28 +7,35 @@ import {
     type SectionOpen
 } from './generated/ast.js';
 import type { DirectiveKind } from './catalog/types.js';
-import { validateCatalogEntry } from './httpd-catalog-validation.js';
+import {
+    validateArgumentShapes,
+    validateCatalogEntry
+} from './httpd-catalog-validation.js';
 import { getNodeContext } from './httpd-context.js';
 import { HttpdIncludeGraph } from './httpd-include-graph.js';
-import { HttpdIncludeResolver, isIncludeDirective } from './httpd-include-resolver.js';
 import type { HttpdServices } from './httpd-module.js';
+import { HttpdRequirementAnalyzer } from './httpd-requirements.js';
 
 export function registerValidationChecks(services: HttpdServices): void {
     const registry = services.validation.ValidationRegistry;
     const validator = services.validation.HttpdValidator;
     const checks: ValidationChecks<HttpdAstType> = {
-        HttpdDocument: [validator.checkOrphanSectionClosings, validator.checkIncludeGraph],
+        HttpdDocument: [
+            validator.checkOrphanSectionClosings,
+            validator.checkIncludeGraph,
+            validator.checkRequirements
+        ],
         Section: [validator.checkSectionPair, validator.checkSectionDelimiters],
         SectionOpen: validator.checkSectionOpen,
-        Directive: [validator.checkDirective, validator.checkIncludeTarget]
+        Directive: validator.checkDirective
     };
     registry.register(checks, validator);
 }
 
 export class HttpdValidator {
     constructor(
-        private readonly includes: HttpdIncludeResolver,
-        private readonly includeGraph: HttpdIncludeGraph
+        private readonly includeGraph: HttpdIncludeGraph,
+        private readonly requirements: HttpdRequirementAnalyzer
     ) {}
 
     checkOrphanSectionClosings(document: HttpdDocument, accept: ValidationAcceptor): void {
@@ -44,14 +51,25 @@ export class HttpdValidator {
     async checkIncludeGraph(document: HttpdDocument, accept: ValidationAcceptor): Promise<void> {
         const graph = await this.includeGraph.build(AstUtils.getDocument(document));
         for (const cycle of graph.cycles) {
-            accept('error', `Include cycle detected: ${cycle.path.map(uri => uri.path.split('/').at(-1)).join(' -> ')}.`, {
+            const prefix = cycle.condition === 'unknown' ? 'Conditional include cycle' : 'Include cycle';
+            accept(cycle.condition === 'unknown' ? 'warning' : 'error', `${prefix} detected: ${cycle.path.map(uri => uri.path.split('/').at(-1)).join(' -> ')}.`, {
                 node: cycle.origin,
                 property: 'arguments',
                 index: 0
             });
         }
+        for (const missing of graph.missingIncludes) {
+            const message = missing.condition === 'unknown'
+                ? `Conditional include "${missing.path}" cannot be resolved from this workspace.`
+                : `Cannot resolve required include "${missing.path}" from this workspace.`;
+            accept(missing.condition === 'unknown' ? 'warning' : 'error', message, {
+                node: missing.origin,
+                property: 'arguments',
+                index: 0
+            });
+        }
         for (const issue of graph.syntaxIssues) {
-            accept('error', `Included file "${issue.uri.path.split('/').at(-1)}" has syntax errors: ${issue.message}`, {
+            accept(issue.condition === 'unknown' ? 'warning' : 'error', `Included file "${issue.uri.path.split('/').at(-1)}" has syntax errors: ${issue.message}`, {
                 node: issue.origin,
                 property: 'arguments',
                 index: 0
@@ -62,6 +80,21 @@ export class HttpdValidator {
                 node: issue.origin,
                 property: 'arguments',
                 index: 0
+            });
+        }
+        for (const include of graph.truncatedIncludes) {
+            accept('warning', 'Include expansion reached a safety limit; analysis is incomplete.', {
+                node: include,
+                property: 'arguments',
+                index: 0
+            });
+        }
+    }
+
+    checkRequirements(document: HttpdDocument, accept: ValidationAcceptor): void {
+        if (this.requirements.analyze(document).targetPlatforms === 'conflict') {
+            accept('error', 'This configuration requires incompatible target platforms.', {
+                node: document
             });
         }
     }
@@ -93,27 +126,6 @@ export class HttpdValidator {
 
     checkDirective(directive: Directive, accept: ValidationAcceptor): void {
         this.checkCatalogEntry(directive, 'directive', accept);
-        if (directive.inlineComment) {
-            accept('error', 'Inline comments are not allowed; move the comment to its own line.', {
-                node: directive,
-                property: 'inlineComment'
-            });
-        }
-    }
-
-    async checkIncludeTarget(directive: Directive, accept: ValidationAcceptor): Promise<void> {
-        if (!isIncludeDirective(directive) || directive.name.toLowerCase() === 'includeoptional') {
-            return;
-        }
-
-        const resolution = await this.includes.resolve(AstUtils.getDocument(directive), directive);
-        if (resolution.status === 'missing') {
-            accept('error', `Cannot resolve required include "${directive.arguments[0]}" from this workspace.`, {
-                node: directive,
-                property: 'arguments',
-                index: 0
-            });
-        }
     }
 
     checkSectionOpen(section: SectionOpen, accept: ValidationAcceptor): void {
@@ -132,6 +144,12 @@ export class HttpdValidator {
             node.arguments.length,
             context
         )) {
+            accept(issue.severity, issue.message, {
+                node,
+                property: 'name'
+            });
+        }
+        for (const issue of validateArgumentShapes(node.name, kind, node.arguments)) {
             accept(issue.severity, issue.message, {
                 node,
                 property: 'name'

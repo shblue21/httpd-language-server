@@ -22,6 +22,13 @@ describe('HTTPD language services', () => {
             }
         });
         await complete({
+            text: '<Proxy "*">\nReq<|>\n</Proxy>',
+            index: 0,
+            assert: completions => {
+                expect(completions.items.map(item => item.label)).toContain('Require');
+            }
+        });
+        await complete({
             text: '<Directory "/srv/www">\nAllow<|>\n</Directory>',
             index: 0,
             assert: completions => {
@@ -36,6 +43,17 @@ describe('HTTPD language services', () => {
                 expect(completions.items.map(item => item.label)).toContain('VirtualHost');
             }
         });
+    });
+
+    test('does not complete directive names on continued physical lines', async () => {
+        const complete = expectCompletion(services);
+        for (const text of ['Header set X foo\\\n    <|>', '# comment \\\n    <|>']) {
+            await complete({
+                text,
+                index: 0,
+                assert: completions => expect(completions.items).toHaveLength(0)
+            });
+        }
     });
 
     test('shows official directive metadata on hover', async () => {

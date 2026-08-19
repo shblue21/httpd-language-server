@@ -44,10 +44,12 @@ export interface DirectiveSpec extends VersionMetadata {
     contexts: readonly DirectiveContext[];
     override: readonly string[];
     status: string;
+    platforms?: readonly TargetPlatform[];
     description: string;
     syntax: string;
     default?: string;
     compatibility?: string;
     documentation: string;
     arguments?: ArgumentCount;
+    argumentShape?: 'listen';
 }

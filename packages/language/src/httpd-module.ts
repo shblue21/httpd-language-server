@@ -46,8 +46,11 @@ export const HttpdSharedModule: Module<HttpdSharedServices, PartialLangiumShared
 export const HttpdModule: Module<HttpdServices, PartialLangiumServices & HttpdAddedServices> = {
     lsp: {
         CompletionProvider: () => new HttpdCompletionProvider(),
-        DefinitionProvider: services => new HttpdDefinitionProvider(services.workspace.IncludeResolver),
-        HoverProvider: services => new HttpdHoverProvider(services.semantic.Requirements),
+        DefinitionProvider: services => new HttpdDefinitionProvider(services.workspace.IncludeGraph),
+        HoverProvider: services => new HttpdHoverProvider(
+            services.semantic.Requirements,
+            services.workspace.IncludeGraph
+        ),
         RenameProvider: () => new HttpdRenameProvider()
     },
     parser: {
@@ -55,8 +58,8 @@ export const HttpdModule: Module<HttpdServices, PartialLangiumServices & HttpdAd
     },
     validation: {
         HttpdValidator: services => new HttpdValidator(
-            services.workspace.IncludeResolver,
-            services.workspace.IncludeGraph
+            services.workspace.IncludeGraph,
+            services.semantic.Requirements
         )
     },
     semantic: {

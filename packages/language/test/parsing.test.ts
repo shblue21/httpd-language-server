@@ -68,7 +68,7 @@ Listen 80
         expect(document.parseResult.parserErrors).toHaveLength(0);
         const directives = document.parseResult.value.statements.filter(isDirective);
         expect(directives.map(directive => directive.name)).toEqual(['Header', 'Listen']);
-        expect(directives[0].inlineComment).toBe('#fff');
+        expect(directives[0].arguments).toEqual(['set', 'X-Color', '#fff']);
     });
 
     test('distinguishes IfVersion angle operators from section delimiters', async () => {

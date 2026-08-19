@@ -4,6 +4,7 @@ import type {
     DirectiveKind,
     DirectiveSpec
 } from './catalog/types.js';
+import { getContextCapabilities } from './httpd-context.js';
 
 export interface CatalogIssue {
     message: string;
@@ -23,7 +24,8 @@ export function validateCatalogEntry(
     }
 
     const issues: CatalogIssue[] = [];
-    if (!directives.some(directive => directive.contexts.includes(context))) {
+    const capabilities = getContextCapabilities(context);
+    if (!directives.some(directive => directive.contexts.some(item => capabilities.includes(item)))) {
         const contexts = [...new Set(directives.flatMap(directive => directive.contexts))];
         issues.push({
             severity: 'error',
@@ -39,6 +41,33 @@ export function validateCatalogEntry(
         });
     }
     return issues;
+}
+
+export function validateArgumentShapes(
+    name: string,
+    kind: DirectiveKind,
+    args: readonly string[]
+): readonly CatalogIssue[] {
+    const directives = apache24Catalog.getDirectives(name)
+        .filter(directive => directive.kind === kind && directive.argumentShape);
+    if (directives.length === 0 || directives.some(directive => matchesShape(directive, args))) {
+        return [];
+    }
+    return [{
+        severity: 'error',
+        message: `${name} has an invalid address or port argument.`
+    }];
+}
+
+function matchesShape(directive: DirectiveSpec, args: readonly string[]): boolean {
+    if (directive.argumentShape === 'listen') {
+        const value = args[0] ?? '';
+        return /^\d+$/.test(value)
+            || /^.+:\d+$/.test(value)
+            || /^\[[^\]]+\]:\d+$/.test(value)
+            || value.startsWith('/');
+    }
+    return true;
 }
 
 function acceptsArgumentCount(directive: DirectiveSpec, count: number): boolean {

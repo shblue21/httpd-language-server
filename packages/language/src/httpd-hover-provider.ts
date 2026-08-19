@@ -3,12 +3,16 @@ import type { HoverProvider } from 'langium/lsp';
 import { MarkupKind, type Hover, type HoverParams } from 'vscode-languageserver';
 import { apache24Catalog } from './catalog/apache-2.4.js';
 import { isDirective, isSectionOpen, type HttpdDocument } from './generated/ast.js';
+import { HttpdIncludeGraph } from './httpd-include-graph.js';
 import { HttpdRequirementAnalyzer, type HttpdRequirements } from './httpd-requirements.js';
 
 export class HttpdHoverProvider implements HoverProvider {
-    constructor(private readonly requirements: HttpdRequirementAnalyzer) {}
+    constructor(
+        private readonly requirements: HttpdRequirementAnalyzer,
+        private readonly includes: HttpdIncludeGraph
+    ) {}
 
-    getHoverContent(document: LangiumDocument, params: HoverParams): Hover | undefined {
+    async getHoverContent(document: LangiumDocument, params: HoverParams): Promise<Hover | undefined> {
         const root = document.parseResult.value.$cstNode;
         if (!root) {
             return undefined;
@@ -33,8 +37,10 @@ export class HttpdHoverProvider implements HoverProvider {
             return undefined;
         }
 
-        const requirements = this.requirements.analyze(
-            document.parseResult.value as HttpdDocument
+        const graph = await this.includes.build(document as LangiumDocument<HttpdDocument>);
+        const requirements = this.requirements.analyzeConfiguration(
+            document.parseResult.value as HttpdDocument,
+            graph
         );
         const htaccess = document.uri.path.endsWith('/.htaccess');
         return {
@@ -62,7 +68,7 @@ function formatDirective(
         `**Module:** ${directive.modules.map(module => `\`${module}\``).join(' or ')}`,
         `**Module state:** ${formatModuleState(analyzer.moduleState(requirements, directive.modules))}`,
         `**Configuration minimum:** ${requirements.minimumVersion}`,
-        `**Target platform:** ${requirements.targetPlatforms === 'unknown' ? 'unknown' : requirements.targetPlatforms.join(' or ')}`,
+        `**Target platform:** ${formatTargetPlatforms(requirements.targetPlatforms)}`,
         `**Context:** ${directive.contexts.join(', ')}`,
         `**Status:** ${directive.status}`
     ];
@@ -84,6 +90,12 @@ function formatDirective(
 
 function formatModuleState(state: 'loaded' | 'unknown'): string {
     return state === 'loaded' ? 'loaded (required)' : 'required; load state unknown';
+}
+
+function formatTargetPlatforms(
+    platforms: HttpdRequirements['targetPlatforms']
+): string {
+    return typeof platforms === 'string' ? platforms : platforms.join(' or ');
 }
 
 function containsOffset(node: { offset: number; length: number }, offset: number): boolean {

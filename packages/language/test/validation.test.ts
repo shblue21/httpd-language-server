@@ -21,13 +21,12 @@ describe('HTTPD validation', () => {
     });
 
     test('validates directives through the official catalog without stopping on unknown names', async () => {
-        const document = await parse('AllowOverride All\nInclude\nVendorThing value # inline\nListen 80\n');
+        const document = await parse('AllowOverride All\nInclude\nVendorThing value #fff\nListen 80\n');
         const messages = document.diagnostics?.map(diagnostic => diagnostic.message);
 
         expect(messages).toContain('AllowOverride is not valid in server context. Allowed: directory.');
         expect(messages).toContain('Include expects 1 argument; received 0.');
         expect(messages).toContain('Unknown HTTPD directive "VendorThing".');
-        expect(messages).toContain('Inline comments are not allowed; move the comment to its own line.');
         expect(document.parseResult.value.statements).toHaveLength(4);
     });
 
@@ -58,6 +57,31 @@ describe('HTTPD validation', () => {
         expect(orphan.parseResult.value.statements).toHaveLength(1);
         expect(orphan.diagnostics?.map(diagnostic => diagnostic.message)).toContain(
             'Closing section </Location> has no matching opening section.'
+        );
+    });
+
+    test('allows directory directives in Proxy sections', async () => {
+        const document = await parse('<Proxy "*">\nRequire all granted\n</Proxy>\n');
+
+        expect(document.diagnostics).toHaveLength(0);
+    });
+
+    test('validates a focused high-value argument shape', async () => {
+        const document = await parse('Listen bananas\nListen 127.0.0.1:8080\n');
+
+        expect(document.diagnostics?.map(diagnostic => diagnostic.message)).toEqual([
+            'Listen has an invalid address or port argument.'
+        ]);
+    });
+
+    test('reports incompatible target platform requirements', async () => {
+        const document = await parse(`
+LoadModule mpm_winnt_module modules/mod_mpm_winnt.so
+ChrootDir /srv/chroot
+`);
+
+        expect(document.diagnostics?.map(diagnostic => diagnostic.message)).toContain(
+            'This configuration requires incompatible target platforms.'
         );
     });
 });

@@ -261,9 +261,15 @@ function splitOverride(value) {
 }
 
 function inferSince(compatibility) {
-    return compatibility?.match(
-        /^Available in (?:(?:Apache HTTP Server|Apache) )?(?:version )?(\d+\.\d+(?:\.\d+)?) and later\b/i
-    )?.[1];
+    if (!compatibility) {
+        return undefined;
+    }
+    const patterns = [
+        /^Available in (?:(?:Apache HTTP Server|Apache) )?(?:version )?(\d+\.\d+(?:\.\d+)?) and later\b/i,
+        /^Added in (\d+\.\d+(?:\.\d+)?)\b/i,
+        /^(\d+\.\d+(?:\.\d+)?) and later\b/i
+    ];
+    return patterns.map(pattern => compatibility.match(pattern)?.[1]).find(Boolean);
 }
 
 function defaultLoadFileNames(id, identifier) {

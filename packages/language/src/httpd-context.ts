@@ -30,6 +30,10 @@ export function getRootContext(uriPath: string): DirectiveContext {
     return uriPath.endsWith('/.htaccess') ? 'htaccess' : 'server';
 }
 
+export function getContextCapabilities(context: DirectiveContext): readonly DirectiveContext[] {
+    return context === 'proxy' ? ['proxy', 'directory'] : [context];
+}
+
 export function getSectionOwnContext(name: string): DirectiveContext | undefined {
     switch (name.toLowerCase()) {
         case 'virtualhost':

@@ -17,9 +17,14 @@ export const APACHE_2_4_DIRECTIVE_OVERRIDES: Readonly<Record<string, DirectiveOv
     'core:directive:include': { arguments: { min: 1, max: 1 } },
     'core:directive:includeoptional': { arguments: { min: 1, max: 1 } },
     'core:directive:serverroot': { arguments: { min: 1, max: 1 } },
+    'core:directive:unclist': { platforms: ['windows'], since: '2.4.60' },
     'core:directive:undefine': { arguments: { min: 1, max: 1 } },
     'core:section:ifdefine': { arguments: { min: 1, max: 1 } },
     'core:section:ifmodule': { arguments: { min: 1, max: 1 } },
     'mod_so:directive:loadmodule': { arguments: { min: 2, max: 2 } },
+    'mpm_common:directive:listen': {
+        arguments: { min: 1, max: 2 },
+        argumentShape: 'listen'
+    },
     'mod_version:section:ifversion': { arguments: { min: 1, max: 2 } }
 };

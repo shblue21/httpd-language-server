@@ -8,7 +8,11 @@ import {
 } from 'vscode-languageserver';
 import { apache24Catalog } from './catalog/apache-2.4.js';
 import type { DirectiveContext, DirectiveKind } from './catalog/types.js';
-import { getRootContext, getSectionContext } from './httpd-context.js';
+import {
+    getContextCapabilities,
+    getRootContext,
+    getSectionContext
+} from './httpd-context.js';
 import { isSection, type HttpdDocument, type Section } from './generated/ast.js';
 
 export class HttpdCompletionProvider implements CompletionProvider {
@@ -26,6 +30,7 @@ export class HttpdCompletionProvider implements CompletionProvider {
             cursor.kind,
             document.uri.path.endsWith('/.htaccess')
         );
+        const capabilities = getContextCapabilities(context);
         const seen = new Set<string>();
         const items: CompletionItem[] = [];
 
@@ -33,7 +38,7 @@ export class HttpdCompletionProvider implements CompletionProvider {
             const key = directive.name.toLowerCase();
             if (
                 directive.kind !== cursor.kind
-                || !directive.contexts.includes(context)
+                || !directive.contexts.some(item => capabilities.includes(item))
                 || !key.startsWith(cursor.prefix.toLowerCase())
                 || seen.has(key)
             ) {
@@ -79,7 +84,7 @@ function getCursor(document: LangiumDocument, params: CompletionParams): Complet
     const character = offset - lineStart;
     const indentation = line.match(/^\s*/)?.[0].length ?? 0;
 
-    if (line[indentation] === '#' || character < indentation) {
+    if (isContinuationLine(source, lineStart) || line[indentation] === '#' || character < indentation) {
         return undefined;
     }
 
@@ -112,6 +117,18 @@ function getCursor(document: LangiumDocument, params: CompletionParams): Complet
             end: { line: params.position.line, character: tokenEnd }
         }
     };
+}
+
+function isContinuationLine(source: string, lineStart: number): boolean {
+    if (lineStart === 0) {
+        return false;
+    }
+    let previousEnd = lineStart - 1;
+    if (source[previousEnd - 1] === '\r') {
+        previousEnd--;
+    }
+    const previousStart = source.lastIndexOf('\n', Math.max(0, previousEnd - 1)) + 1;
+    return source.slice(previousStart, previousEnd).endsWith('\\');
 }
 
 function findCompletionContext(

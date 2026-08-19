@@ -1,11 +1,13 @@
 import { apache24Catalog } from './catalog/apache-2.4.js';
 import type { DirectiveSpec, HttpdCatalog, TargetPlatform } from './catalog/index.js';
+import { evaluateCondition, isConditionalSection, type ConditionState } from './httpd-conditions.js';
+import type { IncludeGraph } from './httpd-include-graph.js';
 import { isDirective, isSection, type HttpdDocument, type Statement } from './generated/ast.js';
 
 export type ModuleRequirementState = 'loaded' | 'unknown';
-export type ConditionState = 'active' | 'inactive' | 'unknown';
 
 export interface ModuleRequirement {
+    condition: Exclude<ConditionState, 'inactive'>;
     required: true;
     providers: readonly string[];
     state: ModuleRequirementState;
@@ -18,22 +20,52 @@ export interface HttpdRequirements {
     minimumVersion: string;
     modules: readonly ModuleRequirement[];
     serverRoot?: string;
-    targetPlatforms: readonly TargetPlatform[] | 'unknown';
+    targetPlatforms: readonly TargetPlatform[] | 'unknown' | 'conflict';
 }
 
 export class HttpdRequirementAnalyzer {
     constructor(private readonly catalog: HttpdCatalog = apache24Catalog) {}
 
     analyze(document: HttpdDocument): HttpdRequirements {
+        return this.analyzeDocuments([{ document, condition: 'active' }]);
+    }
+
+    analyzeConfiguration(document: HttpdDocument, graph: IncludeGraph): HttpdRequirements {
+        const documents: Array<{
+            document: HttpdDocument;
+            condition: Exclude<ConditionState, 'inactive'>;
+        }> = [{ document, condition: 'active' }];
+        for (const occurrence of graph.occurrences) {
+            const included = graph.documents.get(occurrence.targetUri.toString());
+            if (included) {
+                documents.push({
+                    document: included.value,
+                    condition: occurrence.condition
+                });
+            }
+        }
+        return this.analyzeDocuments(documents);
+    }
+
+    private analyzeDocuments(
+        documents: readonly {
+            document: HttpdDocument;
+            condition: Exclude<ConditionState, 'inactive'>;
+        }[]
+    ): HttpdRequirements {
         const state: MutableRequirements = {
             conditions: [],
             defines: new Map(),
+            loadedModuleAliases: new Set(),
             loadedModules: new Set(['core']),
             minimumVersion: '2.4.0',
             modules: new Map(),
-            targetPlatforms: undefined
+            targetPlatforms: undefined,
+            undefinedDefines: new Set()
         };
-        this.visitStatements(document.statements, state, 'active');
+        for (const entry of documents) {
+            this.visitStatements(entry.document.statements, state, entry.condition);
+        }
         return {
             conditions: state.conditions,
             defines: state.defines,
@@ -42,7 +74,9 @@ export class HttpdRequirementAnalyzer {
             modules: [...state.modules.values()],
             serverRoot: state.serverRoot,
             targetPlatforms: state.targetPlatforms
-                ? [...state.targetPlatforms].sort()
+                ? state.targetPlatforms.size > 0
+                    ? [...state.targetPlatforms].sort()
+                    : 'conflict'
                 : 'unknown'
         };
     }
@@ -63,13 +97,14 @@ export class HttpdRequirementAnalyzer {
                 if (parentCondition === 'active') {
                     this.updateFacts(statement.name, statement.arguments, state);
                 }
-                this.recordRequirements(statement.name, 'directive', state);
+                this.recordRequirements(statement.name, 'directive', parentCondition, state);
             } else if (isSection(statement)) {
-                this.recordRequirements(statement.open.name, 'section', state);
-                const condition = this.evaluateCondition(
+                this.recordRequirements(statement.open.name, 'section', parentCondition, state);
+                const condition = evaluateCondition(
                     statement.open.name,
                     statement.open.arguments,
-                    state
+                    state,
+                    this.catalog
                 );
                 const effective = parentCondition === 'unknown' && condition !== 'inactive'
                     ? 'unknown'
@@ -79,41 +114,12 @@ export class HttpdRequirementAnalyzer {
                 }
                 if (effective !== 'inactive') {
                     this.visitStatements(statement.statements, state, effective);
+                    if (parentCondition === 'active' && effective === 'unknown') {
+                        invalidateConditionallyChangedFacts(statement.statements, state);
+                    }
                 }
             }
         }
-    }
-
-    private evaluateCondition(
-        name: string,
-        args: readonly string[],
-        state: MutableRequirements
-    ): ConditionState {
-        const argument = args[0] ?? '';
-        const negated = argument.startsWith('!');
-        const value = negated ? argument.slice(1) : argument;
-        let knownTrue = false;
-
-        switch (name.toLowerCase()) {
-            case 'ifdefine':
-                knownTrue = state.defines.has(value);
-                break;
-            case 'ifmodule': {
-                const module = this.catalog.getModuleByIdentifier(value)
-                    ?? this.catalog.getModuleByFileName(value);
-                knownTrue = Boolean(module && state.loadedModules.has(module.id));
-                break;
-            }
-            case 'ifversion':
-                return 'unknown';
-            default:
-                return 'active';
-        }
-
-        if (!knownTrue) {
-            return 'unknown';
-        }
-        return negated ? 'inactive' : 'active';
     }
 
     private updateFacts(name: string, args: readonly string[], state: MutableRequirements): void {
@@ -121,18 +127,32 @@ export class HttpdRequirementAnalyzer {
             case 'define':
                 if (args[0]) {
                     state.defines.set(args[0], args[1] ?? true);
+                    state.undefinedDefines.delete(args[0]);
                 }
                 break;
             case 'undefine':
                 if (args[0]) {
                     state.defines.delete(args[0]);
+                    state.undefinedDefines.add(args[0]);
                 }
                 break;
             case 'loadmodule': {
+                if (args[0]) {
+                    state.loadedModuleAliases.add(args[0].toLowerCase());
+                }
+                if (args[1]) {
+                    state.loadedModuleAliases.add(basename(args[1]).toLowerCase());
+                }
                 const module = this.catalog.getModuleByIdentifier(args[0] ?? '')
                     ?? this.catalog.getModuleByFileName(args[1] ?? '');
                 if (module) {
                     state.loadedModules.add(module.id);
+                    this.updatePlatforms([module.id], state);
+                    for (const requirement of state.modules.values()) {
+                        if (requirement.providers.includes(module.id)) {
+                            requirement.state = 'loaded';
+                        }
+                    }
                 }
                 break;
             }
@@ -145,27 +165,38 @@ export class HttpdRequirementAnalyzer {
     private recordRequirements(
         name: string,
         kind: DirectiveSpec['kind'],
+        condition: Exclude<ConditionState, 'inactive'>,
         state: MutableRequirements
     ): void {
         for (const directive of this.catalog.getDirectives(name).filter(entry => entry.kind === kind)) {
-            if (directive.since && compareVersions(directive.since, state.minimumVersion) > 0) {
+            if (
+                condition === 'active'
+                && directive.since
+                && compareVersions(directive.since, state.minimumVersion) > 0
+            ) {
                 state.minimumVersion = directive.since;
             }
 
             const providers = [...directive.modules].sort();
-            const key = providers.join('|');
+            const key = `${condition}:${providers.join('|')}`;
             const current = state.modules.get(key);
             const requirement: ModuleRequirement = {
+                condition,
                 providers,
                 required: true,
                 state: providers.some(provider => state.loadedModules.has(provider))
                     ? 'loaded'
                     : 'unknown'
             };
-            if (!current || current.state === 'loaded') {
+            if (!current || (current.state === 'unknown' && requirement.state === 'loaded')) {
                 state.modules.set(key, requirement);
             }
-            this.updatePlatforms(providers, state);
+            if (condition === 'active') {
+                this.updatePlatforms(providers, state);
+                if (directive.platforms) {
+                    this.updatePlatformCandidates(directive.platforms, state);
+                }
+            }
         }
     }
 
@@ -175,7 +206,17 @@ export class HttpdRequirementAnalyzer {
             return;
         }
 
-        const candidates = new Set(modules.flatMap(module => module?.platforms ?? []));
+        this.updatePlatformCandidates(
+            modules.flatMap(module => module?.platforms ?? []),
+            state
+        );
+    }
+
+    private updatePlatformCandidates(
+        platforms: readonly TargetPlatform[],
+        state: MutableRequirements
+    ): void {
+        const candidates = new Set(platforms);
         if (!state.targetPlatforms) {
             state.targetPlatforms = candidates;
             return;
@@ -190,15 +231,12 @@ interface MutableRequirements {
     conditions: Array<{ name: string; state: ConditionState }>;
     defines: Map<string, string | true>;
     loadedModules: Set<string>;
+    loadedModuleAliases: Set<string>;
     minimumVersion: string;
     modules: Map<string, ModuleRequirement>;
     serverRoot?: string;
     targetPlatforms?: Set<TargetPlatform>;
-}
-
-function isConditionalSection(name: string): boolean {
-    const normalized = name.toLowerCase();
-    return normalized === 'ifdefine' || normalized === 'ifmodule' || normalized === 'ifversion';
+    undefinedDefines: Set<string>;
 }
 
 function compareVersions(left: string, right: string): number {
@@ -211,4 +249,27 @@ function compareVersions(left: string, right: string): number {
         }
     }
     return 0;
+}
+
+function basename(path: string): string {
+    return path.split(/[\\/]/).at(-1) ?? path;
+}
+
+function invalidateConditionallyChangedFacts(
+    statements: readonly Statement[],
+    state: MutableRequirements
+): void {
+    for (const statement of statements) {
+        if (isDirective(statement)) {
+            const name = statement.arguments[0];
+            if (name && (statement.name.toLowerCase() === 'define' || statement.name.toLowerCase() === 'undefine')) {
+                state.defines.delete(name);
+                state.undefinedDefines.delete(name);
+            } else if (statement.name.toLowerCase() === 'serverroot') {
+                state.serverRoot = undefined;
+            }
+        } else if (isSection(statement)) {
+            invalidateConditionallyChangedFacts(statement.statements, state);
+        }
+    }
 }

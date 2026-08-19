@@ -1187,6 +1187,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Provides Lua hooks into various portions of the httpd request processing",
         "compatibility": "2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_lua.html"
     },
     {
@@ -2720,6 +2721,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AliasPreservePath OFF|ON",
         "default": "AliasPreservePath OFF",
         "compatibility": "2.4.58 and later",
+        "since": "2.4.58",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_alias.html#aliaspreservepath"
     },
     {
@@ -5707,6 +5709,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "CookieHTTPOnly on|off",
         "default": "CookieHTTPOnly off",
         "compatibility": "2.4.42 and later",
+        "since": "2.4.42",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_usertrack.html#cookiehttponly"
     },
     {
@@ -5754,6 +5757,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "CookieSameSite None|Lax|Strict",
         "default": "unset",
         "compatibility": "2.4.42 and later",
+        "since": "2.4.42",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_usertrack.html#cookiesamesite"
     },
     {
@@ -5778,6 +5782,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "CookieSecure on|off",
         "default": "CookieSecure off",
         "compatibility": "2.4.42 and later",
+        "since": "2.4.42",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_usertrack.html#cookiesecure"
     },
     {
@@ -6373,6 +6378,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "DeflateInflateLimitRequestBody value",
         "default": "None, but LimitRequestBody applies after deflation",
         "compatibility": "2.4.10 and later",
+        "since": "2.4.10",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_deflate.html#deflateinflatelimitrequestbody"
     },
     {
@@ -6397,6 +6403,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "DeflateInflateRatioBurst value",
         "default": "DeflateInflateRatioBurst 3",
         "compatibility": "2.4.10 and later",
+        "since": "2.4.10",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_deflate.html#deflateinflateratioburst"
     },
     {
@@ -6421,6 +6428,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "DeflateInflateRatioLimit value",
         "default": "DeflateInflateRatioLimit 200",
         "compatibility": "2.4.10 and later",
+        "since": "2.4.10",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_deflate.html#deflateinflateratiolimit"
     },
     {
@@ -6821,6 +6829,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Abort configuration parsing with a custom error message",
         "syntax": "Error message",
         "compatibility": "2.3.9 and later",
+        "since": "2.3.9",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#error"
     },
     {
@@ -7239,6 +7248,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "FlushMaxPipelined number",
         "default": "FlushMaxPipelined 5",
         "compatibility": "2.4.47 and later",
+        "since": "2.4.47",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#flushmaxpipelined"
     },
     {
@@ -7259,6 +7269,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "FlushMaxThreshold number-of-bytes",
         "default": "FlushMaxThreshold 65535",
         "compatibility": "2.4.47 and later",
+        "since": "2.4.47",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#flushmaxthreshold"
     },
     {
@@ -8507,6 +8518,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Empties the list of files to hide when listing a directory",
         "syntax": "IndexIgnoreReset ON|OFF",
         "compatibility": "2.3.10 and later",
+        "since": "2.3.10",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_autoindex.html#indexignorereset"
     },
     {
@@ -9561,6 +9573,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Plug an authorization provider function into mod_authz_core",
         "syntax": "LuaAuthzProvider provider_name /path/to/lua/script.lua function_name",
         "compatibility": "2.4.3 and later",
+        "since": "2.4.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_lua.html#luaauthzprovider"
     },
     {
@@ -9830,6 +9843,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "LuaInherit none|parent-first|parent-last",
         "default": "LuaInherit parent-first",
         "compatibility": "2.4.0 and later",
+        "since": "2.4.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_lua.html#luainherit"
     },
     {
@@ -9848,6 +9862,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Provide a Lua function for content input filtering",
         "syntax": "LuaInputFilter filter_name /path/to/lua/script.lua function_name",
         "compatibility": "2.4.5 and later",
+        "since": "2.4.5",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_lua.html#luainputfilter"
     },
     {
@@ -9888,6 +9903,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Provide a Lua function for content output filtering",
         "syntax": "LuaOutputFilter filter_name /path/to/lua/script.lua function_name",
         "compatibility": "2.4.5 and later",
+        "since": "2.4.5",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_lua.html#luaoutputfilter"
     },
     {
@@ -11111,6 +11127,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MergeSlashes ON|OFF",
         "default": "MergeSlashes ON",
         "compatibility": "Added in 2.4.39",
+        "since": "2.4.39",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#mergeslashes"
     },
     {
@@ -11131,6 +11148,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MergeTrailers [on|off]",
         "default": "MergeTrailers off",
         "compatibility": "2.4.11 and later",
+        "since": "2.4.11",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#mergetrailers"
     },
     {
@@ -12731,6 +12749,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "ReadBufferSize bytes",
         "default": "ReadBufferSize 8192",
         "compatibility": "2.4.27 and later",
+        "since": "2.4.27",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#readbuffersize"
     },
     {
@@ -12863,6 +12882,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "RedirectRelative On|Off",
         "default": "RedirectRelative Off",
         "compatibility": "2.4.58 and later",
+        "since": "2.4.58",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_alias.html#redirectrelative"
     },
     {
@@ -16293,6 +16313,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "StrictHostCheck ON|OFF",
         "default": "StrictHostCheck OFF",
         "compatibility": "Added in 2.4.49",
+        "since": "2.4.49",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#stricthostcheck"
     },
     {
@@ -16550,6 +16571,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "UNCList hostname [hostname...]",
         "default": "unset",
         "compatibility": "Added in 2.4.60, Windows only.",
+        "since": "2.4.60",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#unclist"
     },
     {
