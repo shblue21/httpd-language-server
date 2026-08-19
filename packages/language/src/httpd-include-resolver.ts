@@ -5,6 +5,8 @@ import {
     type LangiumDocument
 } from 'langium';
 import { minimatch } from 'minimatch';
+import { realpath } from 'node:fs/promises';
+import { isAbsolute, relative } from 'node:path';
 import type { Directive } from './generated/ast.js';
 
 const MAX_DIRECTORY_DEPTH = 32;
@@ -73,7 +75,9 @@ export class HttpdIncludeResolver {
             return undefined;
         }
         const candidate = UriUtils.resolvePath(base, expanded.replaceAll('\\', '/'));
-        return await this.fileSystem.exists(candidate) && (await this.fileSystem.stat(candidate)).isDirectory
+        return await this.fileSystem.exists(candidate)
+            && (await this.fileSystem.stat(candidate)).isDirectory
+            && await isWithinRealBase(base, candidate)
             ? candidate
             : undefined;
     }
@@ -85,6 +89,9 @@ export class HttpdIncludeResolver {
         }
 
         const stat = await this.fileSystem.stat(target);
+        if (!await isWithinRealBase(base, target)) {
+            throw new Error('Resolved include escapes the analysis base.');
+        }
         if (stat.isFile) {
             return { targets: [target], truncated: false };
         }
@@ -99,17 +106,23 @@ export class HttpdIncludeResolver {
         const prefixEnd = path.lastIndexOf('/', firstGlob);
         const basePath = prefixEnd === -1 ? '' : path.slice(0, prefixEnd);
         const pattern = path.slice(prefixEnd + 1);
-        const base = basePath
+        const searchBase = basePath
             ? resolveFromBase(baseUri, basePath)
             : baseUri;
-        if (!await this.fileSystem.exists(base) || !(await this.fileSystem.stat(base)).isDirectory) {
+        if (
+            !await this.fileSystem.exists(searchBase)
+            || !(await this.fileSystem.stat(searchBase)).isDirectory
+        ) {
             return { targets: [], truncated: false };
         }
+        if (!await isWithinRealBase(baseUri, searchBase)) {
+            throw new Error('Resolved include glob escapes the analysis base.');
+        }
 
-        const candidates = await this.collectFiles(base, pattern.includes('/'));
+        const candidates = await this.collectFiles(searchBase, pattern.includes('/'));
         return {
             targets: candidates.targets.filter(candidate =>
-                minimatch(UriUtils.relative(base, candidate), pattern, {
+                minimatch(UriUtils.relative(searchBase, candidate), pattern, {
                 dot: false,
                 nobrace: true,
                 nocomment: true,
@@ -202,6 +215,22 @@ function pathEscapesBase(path: string): boolean {
 
 function comparePaths(left: string, right: string): number {
     return left < right ? -1 : left > right ? 1 : 0;
+}
+
+async function isWithinRealBase(base: URI, target: URI): Promise<boolean> {
+    if (base.scheme !== 'file' || target.scheme !== 'file') {
+        return false;
+    }
+    try {
+        const [realBase, realTarget] = await Promise.all([
+            realpath(base.fsPath),
+            realpath(target.fsPath)
+        ]);
+        const path = relative(realBase, realTarget);
+        return path === '' || (!path.startsWith('..') && !isAbsolute(path));
+    } catch {
+        return false;
+    }
 }
 
 function substituteVariables(

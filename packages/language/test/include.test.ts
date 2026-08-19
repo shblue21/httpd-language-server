@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { URI } from 'langium';
@@ -9,10 +9,12 @@ import { createHttpdServices, type HttpdDocument } from '../src/index.js';
 import { resolveConfigurationPath } from '../src/httpd-include-resolver.js';
 
 let directory: string;
+let externalDirectory: string;
 let services: ReturnType<typeof createHttpdServices>;
 
 beforeAll(async () => {
     directory = await mkdtemp(join(tmpdir(), 'httpd-language-server-'));
+    externalDirectory = await mkdtemp(join(tmpdir(), 'httpd-language-server-external-'));
     await writeFile(join(directory, 'fragment.inc'), 'ServerName included.example\n');
     await mkdir(join(directory, 'conf.d'));
     await writeFile(join(directory, 'conf.d', '10-first.conf'), 'Listen 80\n');
@@ -21,15 +23,18 @@ beforeAll(async () => {
     await writeFile(join(directory, 'conf.d', 'a-lower.conf'), 'Listen 8081\n');
     await writeFile(join(directory, 'conf.d', 'ignored.txt'), 'ignored\n');
     await writeFile(join(directory, 'shared.inc'), 'Require all granted\n');
+    await writeFile(join(externalDirectory, 'secret.conf'), 'ExternalSecret value\n');
+    await symlink(externalDirectory, join(directory, 'external-link'), 'dir');
     await writeFile(
         join(directory, 'module.inc'),
-        'LoadModule headers_module modules/mod_headers.so\nHeader set X-Test enabled\n'
+        'LoadModule headers_module modules/mod_headers.so\nDefine ENABLED yes\nHeader set X-Test enabled\n'
     );
     services = createHttpdServices(NodeFileSystem);
 });
 
 afterAll(async () => {
     await rm(directory, { recursive: true, force: true });
+    await rm(externalDirectory, { recursive: true, force: true });
 });
 
 describe('HTTPD includes', () => {
@@ -72,7 +77,15 @@ describe('HTTPD includes', () => {
 
     test('includes logical configuration facts in requirement analysis', async () => {
         const parse = parseHelper<HttpdDocument>(services.Httpd);
-        const document = await parse('Include module.inc\n', {
+        const document = await parse(`
+Include module.inc
+<IfModule headers_module>
+    Define MODULE_FROM_INCLUDE yes
+</IfModule>
+<IfDefine ENABLED>
+    Define DEFINE_FROM_INCLUDE yes
+</IfDefine>
+`, {
             documentUri: URI.file(join(directory, 'requirements.httpd')).toString(),
             validation: true
         });
@@ -83,6 +96,12 @@ describe('HTTPD includes', () => {
         );
 
         expect(requirements.loadedModules).toContain('mod_headers');
+        expect(requirements.conditions.map(condition => condition.state)).toEqual([
+            'active',
+            'active'
+        ]);
+        expect(requirements.defines.has('MODULE_FROM_INCLUDE')).toBe(true);
+        expect(requirements.defines.has('DEFINE_FROM_INCLUDE')).toBe(true);
         expect(requirements.modules).toContainEqual({
             condition: 'active',
             providers: ['mod_headers'],
@@ -135,6 +154,21 @@ describe('HTTPD includes', () => {
             position: { line: 0, character: 12 }
         });
         expect(absoluteLinks).toBeUndefined();
+        expect(document.diagnostics).toHaveLength(0);
+    });
+
+    test('does not follow workspace symlinks to external files', async () => {
+        const parse = parseHelper<HttpdDocument>(services.Httpd);
+        const document = await parse('Include external-link/secret.conf\n', {
+            documentUri: URI.file(join(directory, 'symlink.httpd')).toString(),
+            validation: true
+        });
+        const links = await services.Httpd.lsp.DefinitionProvider?.getDefinition(document, {
+            textDocument: { uri: document.uri.toString() },
+            position: { line: 0, character: 15 }
+        });
+
+        expect(links).toBeUndefined();
         expect(document.diagnostics).toHaveLength(0);
     });
 

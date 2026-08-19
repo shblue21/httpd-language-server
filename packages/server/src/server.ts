@@ -18,6 +18,9 @@ export function startHttpdLanguageServer(connection?: Connection): void {
         'httpd/isIncludedDocument',
         ({ uri }: { uri: string }) => shared.ServiceRegistry.isIncluded(URI.parse(uri))
     );
+    shared.ServiceRegistry.onDidChangeIncluded(uris => {
+        void activeConnection.sendNotification('httpd/includedDocumentsChanged', { uris });
+    });
     const pendingRootUpdates = new Map<string, NodeJS.Timeout>();
     activeConnection.onDidChangeTextDocument(({ textDocument }) => {
         const changed = URI.parse(textDocument.uri);

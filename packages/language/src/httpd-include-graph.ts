@@ -164,7 +164,7 @@ export class HttpdIncludeGraph {
                     statement.statements,
                     uri,
                     getSectionOwnContext(statement.open.name) ?? context,
-                    statement.open.name,
+                    conditional ? sectionName : statement.open.name,
                     stack,
                     rootOrigin,
                     effectiveCondition,

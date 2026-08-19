@@ -8,6 +8,7 @@ import {
 import type { DirectiveContext } from './catalog/types.js';
 
 export class HttpdServiceRegistry extends DefaultServiceRegistry {
+    private readonly includedListeners = new Set<(uris: readonly string[]) => void>();
     private readonly includesByRoot = new Map<string, Map<string, IncludedContext>>();
 
     constructor(services: LangiumSharedCoreServices) {
@@ -33,6 +34,13 @@ export class HttpdServiceRegistry extends DefaultServiceRegistry {
             included.set(key, entry);
         }
         this.includesByRoot.set(UriUtils.normalize(root), included);
+        const uris = this.getIncludedUris();
+        this.includedListeners.forEach(listener => listener(uris));
+    }
+
+    onDidChangeIncluded(listener: (uris: readonly string[]) => void): () => void {
+        this.includedListeners.add(listener);
+        return () => this.includedListeners.delete(listener);
     }
 
     isIncluded(uri: URI): boolean {
@@ -63,6 +71,12 @@ export class HttpdServiceRegistry extends DefaultServiceRegistry {
         return [...this.includesByRoot.entries()]
             .filter(([, included]) => included.has(key))
             .map(([root]) => URI.parse(root));
+    }
+
+    private getIncludedUris(): readonly string[] {
+        return [...new Set(
+            [...this.includesByRoot.values()].flatMap(included => [...included.keys()])
+        )];
     }
 
     override getServices(uri: URI): LangiumCoreServices {

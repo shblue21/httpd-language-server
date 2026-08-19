@@ -30,7 +30,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         serverOptions,
         clientOptions
     );
-    await client.start();
 
     const enableIncludedDocument = async (document: vscode.TextDocument): Promise<void> => {
         if (document.languageId === 'httpd' || document.uri.scheme !== 'file') {
@@ -43,6 +42,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             await vscode.languages.setTextDocumentLanguage(document, 'httpd');
         }
     };
+    client.onNotification(
+        'httpd/includedDocumentsChanged',
+        ({ uris }: { uris: readonly string[] }) => {
+            const included = new Set(uris);
+            for (const document of vscode.workspace.textDocuments) {
+                if (document.languageId !== 'httpd' && included.has(document.uri.toString())) {
+                    void vscode.languages.setTextDocumentLanguage(document, 'httpd');
+                }
+            }
+        }
+    );
+    await client.start();
     context.subscriptions.push(
         vscode.workspace.onDidOpenTextDocument(document => void enableIncludedDocument(document))
     );

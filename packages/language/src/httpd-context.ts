@@ -1,6 +1,7 @@
 import { AstUtils, type AstNode } from 'langium';
 import type { DirectiveContext } from './catalog/types.js';
 import { isSection, isSectionOpen, type Section } from './generated/ast.js';
+import { isConditionalSection } from './httpd-conditions.js';
 
 export function getNodeContext(node: AstNode): DirectiveContext {
     let section: Section | undefined;
@@ -16,12 +17,17 @@ export function getNodeContext(node: AstNode): DirectiveContext {
 }
 
 export function getNodeSectionName(node: AstNode): string | undefined {
+    let section: Section | undefined;
     if (isSectionOpen(node) && isSection(node.$container)) {
-        return isSection(node.$container.$container)
-            ? node.$container.$container.open.name
-            : undefined;
+        const parent = node.$container.$container;
+        section = isSection(parent) ? parent : undefined;
+    } else {
+        section = AstUtils.getContainerOfType(node, isSection);
     }
-    return AstUtils.getContainerOfType(node, isSection)?.open.name;
+    while (section && isConditionalSection(section.open.name)) {
+        section = isSection(section.$container) ? section.$container : undefined;
+    }
+    return section?.open.name;
 }
 
 export function getSectionContext(section: Section | undefined): DirectiveContext | undefined {

@@ -74,6 +74,19 @@ describe('HTTPD validation', () => {
         );
     });
 
+    test('preserves Directory context through conditional wrappers', async () => {
+        const document = await parse(`
+Define ENABLED
+<Directory "/srv">
+    <IfDefine ENABLED>
+        AllowOverride All
+    </IfDefine>
+</Directory>
+`);
+
+        expect(document.diagnostics).toHaveLength(0);
+    });
+
     test('validates a focused high-value argument shape', async () => {
         const document = await parse('Listen bananas\nListen 127.0.0.1:8080\n');
 

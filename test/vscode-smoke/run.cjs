@@ -17,6 +17,8 @@ exports.run = async function run() {
         `Expected packaged extension, got ${extension.extensionPath}.`
     );
 
+    const fragmentUri = vscode.Uri.joinPath(workspace.uri, 'conf', 'site.inc');
+    await vscode.workspace.openTextDocument(fragmentUri);
     const rootUri = vscode.Uri.joinPath(workspace.uri, 'httpd.conf');
     const root = await vscode.workspace.openTextDocument(rootUri);
     await vscode.window.showTextDocument(root);
@@ -60,7 +62,6 @@ exports.run = async function run() {
         : definitions[0].uri;
     assert.equal(path.basename(target.fsPath), 'site.inc');
 
-    await vscode.workspace.openTextDocument(target);
     await waitFor(() => vscode.workspace.textDocuments.some(document =>
         document.uri.toString() === target.toString() && document.languageId === 'httpd'
     ) ? true : undefined);
