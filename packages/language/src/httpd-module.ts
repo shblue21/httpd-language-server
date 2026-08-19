@@ -8,6 +8,8 @@ import {
     type PartialLangiumServices
 } from 'langium/lsp';
 import { HttpdGeneratedModule, HttpdGeneratedSharedModule } from './generated/module.js';
+import { HttpdCompletionProvider } from './httpd-completion-provider.js';
+import { HttpdHoverProvider } from './httpd-hover-provider.js';
 import { HttpdValueConverter } from './httpd-value-converter.js';
 import { HttpdValidator, registerValidationChecks } from './httpd-validator.js';
 
@@ -20,6 +22,10 @@ export type HttpdAddedServices = {
 export type HttpdServices = LangiumServices & HttpdAddedServices;
 
 export const HttpdModule: Module<HttpdServices, PartialLangiumServices & HttpdAddedServices> = {
+    lsp: {
+        CompletionProvider: () => new HttpdCompletionProvider(),
+        HoverProvider: () => new HttpdHoverProvider()
+    },
     parser: {
         ValueConverter: () => new HttpdValueConverter()
     },
