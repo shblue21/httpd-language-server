@@ -1,0 +1,9 @@
+{
+  "name": "httpd-language-server-smoke",
+  "displayName": "HTTPD Language Server Smoke",
+  "publisher": "httpd-language-server-tests",
+  "version": "0.0.0",
+  "engines": { "vscode": "^1.91.0" },
+  "main": "./run.cjs",
+  "activationEvents": []
+}

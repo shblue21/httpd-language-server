@@ -2,7 +2,7 @@
   "name": "httpd-language-support",
   "displayName": "HTTPD Language Support",
   "description": "Language support for Apache HTTP Server configuration powered by httpd-language-server.",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
@@ -11,6 +11,7 @@
     "vscode": "^1.91.0"
   },
   "categories": ["Programming Languages"],
+  "keywords": ["apache", "httpd", "htaccess", "language-server"],
   "activationEvents": ["onLanguage:httpd"],
   "main": "./out/client/main.cjs",
   "contributes": {

@@ -1,6 +1,6 @@
 {
   "name": "httpd-language-server-workspace",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.26.1",
@@ -16,7 +16,8 @@
     "test": "pnpm --filter @httpd-language-server/language test",
     "check": "pnpm build && pnpm test",
     "cli": "node packages/cli/bin/httpd-ls.js",
-    "package:vscode": "pnpm build && pnpm --filter httpd-language-support package"
+    "package:vscode": "pnpm build && pnpm --filter httpd-language-support package",
+    "smoke:vscode": "node scripts/smoke-vsix.mjs"
   },
   "devDependencies": {
     "@types/node": "~20.19.42",
