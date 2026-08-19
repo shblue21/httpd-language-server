@@ -81,6 +81,20 @@ describe('HTTPD includes', () => {
         expect(links?.[0].targetUri).toBe(URI.file(join(root, 'conf', 'extra.inc')).toString());
     });
 
+    test('substitutes definitions in include paths without configuration prompts', async () => {
+        const parse = parseHelper<HttpdDocument>(services.Httpd);
+        const document = await parse('Define SITE fragment\nInclude ${SITE}.inc\n', {
+            documentUri: URI.file(join(directory, 'defined.httpd')).toString(),
+            validation: true
+        });
+        const links = await services.Httpd.lsp.DefinitionProvider?.getDefinition(document, {
+            textDocument: { uri: document.uri.toString() },
+            position: { line: 1, character: 12 }
+        });
+
+        expect(links?.[0].targetUri).toBe(URI.file(join(directory, 'fragment.inc')).toString());
+    });
+
     test('reports missing required includes but not missing optional includes', async () => {
         const parse = parseHelper<HttpdDocument>(services.Httpd);
         const document = await parse('Include missing.inc\nIncludeOptional optional.inc\n', {

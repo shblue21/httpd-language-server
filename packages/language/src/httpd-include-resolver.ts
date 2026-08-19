@@ -25,14 +25,16 @@ export class HttpdIncludeResolver {
     async resolve(
         document: Pick<LangiumDocument, 'uri'> & Partial<Pick<LangiumDocument, 'parseResult'>>,
         directive: Directive,
-        configurationBase?: URI
+        configurationBase?: URI,
+        definitions?: ReadonlyMap<string, string | true>
     ): Promise<IncludeResolution> {
         if (!isIncludeDirective(directive) || directive.arguments.length !== 1) {
             return { status: 'unknown', targets: [] };
         }
 
-        const path = directive.arguments[0];
-        if (path.includes('${')) {
+        const variables = definitions ?? this.getDefinitions(document);
+        const path = substituteVariables(directive.arguments[0], variables);
+        if (path === undefined) {
             return { status: 'unknown', targets: [] };
         }
 
@@ -72,13 +74,39 @@ export class HttpdIncludeResolver {
             return fallback;
         }
 
+        const expanded = substituteVariables(serverRoot.arguments[0], this.getDefinitions(document));
+        if (expanded === undefined) {
+            return fallback;
+        }
         const candidate = resolveConfigurationPath(
             document.uri,
-            serverRoot.arguments[0].replaceAll('\\', '/')
+            expanded.replaceAll('\\', '/')
         );
         return await this.fileSystem.exists(candidate) && (await this.fileSystem.stat(candidate)).isDirectory
             ? candidate
             : fallback;
+    }
+
+    getDefinitions(
+        document: Partial<Pick<LangiumDocument, 'parseResult'>>
+    ): ReadonlyMap<string, string | true> {
+        const definitions = new Map<string, string | true>();
+        const root = document.parseResult?.value;
+        if (!root || !isHttpdDocument(root)) {
+            return definitions;
+        }
+
+        for (const statement of root.statements) {
+            if (!isDirective(statement) || !statement.arguments[0]) {
+                continue;
+            }
+            if (statement.name.toLowerCase() === 'define') {
+                definitions.set(statement.arguments[0], statement.arguments[1] ?? true);
+            } else if (statement.name.toLowerCase() === 'undefine') {
+                definitions.delete(statement.arguments[0]);
+            }
+        }
+        return definitions;
     }
 
     private async resolvePath(base: URI, path: string): Promise<readonly URI[]> {
@@ -163,4 +191,24 @@ function resolveFromBase(base: URI, path: string): URI {
 
 function hasGlob(path: string): boolean {
     return /[*?[]/.test(path);
+}
+
+function substituteVariables(
+    value: string,
+    definitions: ReadonlyMap<string, string | true>
+): string | undefined {
+    let unresolved = false;
+    const result = value.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (_match, name: string) => {
+        const replacement = definitions.get(name);
+        if (replacement === undefined) {
+            unresolved = true;
+            return '';
+        }
+        if (replacement === true) {
+            unresolved = true;
+            return '';
+        }
+        return replacement;
+    });
+    return unresolved ? undefined : result;
 }
