@@ -39,10 +39,17 @@ describe('HTTPD language services', () => {
     });
 
     test('shows official directive metadata on hover', async () => {
-        await expectHover(services)({
+        const hover = expectHover(services);
+        await hover({
             text: 'CacheSoc<|>ache shmcb',
             index: 0,
-            hover: /### CacheSocache[\s\S]*\*\*Module:\*\* `mod_cache_socache`[\s\S]*\*\*Since:\*\* 2\.4\.5[\s\S]*Apache HTTP Server 2\.4 documentation/
+            hover: /### CacheSocache[\s\S]*\*\*Module:\*\* `mod_cache_socache`[\s\S]*\*\*Configuration minimum:\*\* 2\.4\.5[\s\S]*\*\*Since:\*\* 2\.4\.5[\s\S]*Apache HTTP Server 2\.4 documentation/
+        });
+        await hover({
+            text: 'Req<|>uire all granted',
+            index: 0,
+            parseOptions: { documentUri: 'file:///.htaccess' },
+            hover: /\*\*Module state:\*\* unknown[\s\S]*\*\*Requires AllowOverride:\*\* AuthConfig/
         });
     });
 });

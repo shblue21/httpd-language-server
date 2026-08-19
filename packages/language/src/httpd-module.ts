@@ -12,6 +12,7 @@ import { HttpdCompletionProvider } from './httpd-completion-provider.js';
 import { HttpdDefinitionProvider } from './httpd-definition-provider.js';
 import { HttpdHoverProvider } from './httpd-hover-provider.js';
 import { HttpdIncludeResolver } from './httpd-include-resolver.js';
+import { HttpdRequirementAnalyzer } from './httpd-requirements.js';
 import { HttpdValueConverter } from './httpd-value-converter.js';
 import { HttpdValidator, registerValidationChecks } from './httpd-validator.js';
 
@@ -22,6 +23,9 @@ export type HttpdAddedServices = {
     workspace: {
         IncludeResolver: HttpdIncludeResolver;
     };
+    semantic: {
+        Requirements: HttpdRequirementAnalyzer;
+    };
 };
 
 export type HttpdServices = LangiumServices & HttpdAddedServices;
@@ -30,13 +34,16 @@ export const HttpdModule: Module<HttpdServices, PartialLangiumServices & HttpdAd
     lsp: {
         CompletionProvider: () => new HttpdCompletionProvider(),
         DefinitionProvider: services => new HttpdDefinitionProvider(services.workspace.IncludeResolver),
-        HoverProvider: () => new HttpdHoverProvider()
+        HoverProvider: services => new HttpdHoverProvider(services.semantic.Requirements)
     },
     parser: {
         ValueConverter: () => new HttpdValueConverter()
     },
     validation: {
         HttpdValidator: services => new HttpdValidator(services.workspace.IncludeResolver)
+    },
+    semantic: {
+        Requirements: () => new HttpdRequirementAnalyzer()
     },
     workspace: {
         IncludeResolver: services => new HttpdIncludeResolver(services.shared.workspace.FileSystemProvider)

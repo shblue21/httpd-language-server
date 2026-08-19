@@ -2,9 +2,12 @@ import { CstUtils, GrammarUtils, type LangiumDocument } from 'langium';
 import type { HoverProvider } from 'langium/lsp';
 import { MarkupKind, type Hover, type HoverParams } from 'vscode-languageserver';
 import { apache24Catalog } from './catalog/apache-2.4.js';
-import { isDirective, isSectionOpen } from './generated/ast.js';
+import { isDirective, isSectionOpen, type HttpdDocument } from './generated/ast.js';
+import { HttpdRequirementAnalyzer, type HttpdRequirements } from './httpd-requirements.js';
 
 export class HttpdHoverProvider implements HoverProvider {
+    constructor(private readonly requirements: HttpdRequirementAnalyzer) {}
+
     getHoverContent(document: LangiumDocument, params: HoverParams): Hover | undefined {
         const root = document.parseResult.value.$cstNode;
         if (!root) {
@@ -30,24 +33,43 @@ export class HttpdHoverProvider implements HoverProvider {
             return undefined;
         }
 
+        const requirements = this.requirements.analyze(
+            document.parseResult.value as HttpdDocument
+        );
+        const htaccess = document.uri.path.endsWith('/.htaccess');
         return {
             contents: {
                 kind: MarkupKind.Markdown,
-                value: directives.map(formatDirective).join('\n\n---\n\n')
+                value: directives.map(directive => formatDirective(
+                    directive,
+                    this.requirements,
+                    requirements,
+                    htaccess
+                )).join('\n\n---\n\n')
             },
             range: nameNode.range
         };
     }
 }
 
-function formatDirective(directive: (typeof apache24Catalog.directives)[number]): string {
+function formatDirective(
+    directive: (typeof apache24Catalog.directives)[number],
+    analyzer: HttpdRequirementAnalyzer,
+    requirements: HttpdRequirements,
+    htaccess: boolean
+): string {
     const metadata = [
         `**Module:** ${directive.modules.map(module => `\`${module}\``).join(' or ')}`,
+        `**Module state:** ${analyzer.moduleState(requirements, directive.modules)}`,
+        `**Configuration minimum:** ${requirements.minimumVersion}`,
         `**Context:** ${directive.contexts.join(', ')}`,
         `**Status:** ${directive.status}`
     ];
     if (directive.since) {
         metadata.push(`**Since:** ${directive.since}`);
+    }
+    if (htaccess && directive.override.length > 0) {
+        metadata.push(`**Requires AllowOverride:** ${directive.override.join(', ')}`);
     }
 
     return [
