@@ -1,11 +1,14 @@
-import { AstUtils, type ValidationAcceptor, type ValidationChecks } from 'langium';
+import type { ValidationAcceptor, ValidationChecks } from 'langium';
 import {
     type Directive,
     type HttpdAstType,
     type HttpdDocument,
     type Section,
-    isSection
+    type SectionOpen
 } from './generated/ast.js';
+import { apache24Catalog } from './catalog/apache-2.4.js';
+import type { DirectiveKind, DirectiveSpec } from './catalog/types.js';
+import { getNodeContext } from './httpd-context.js';
 import type { HttpdServices } from './httpd-module.js';
 
 export function registerValidationChecks(services: HttpdServices): void {
@@ -14,7 +17,8 @@ export function registerValidationChecks(services: HttpdServices): void {
     const checks: ValidationChecks<HttpdAstType> = {
         HttpdDocument: validator.checkOrphanSectionClosings,
         Section: [validator.checkSectionPair, validator.checkSectionDelimiters],
-        Directive: validator.checkDirectiveContext
+        SectionOpen: validator.checkSectionOpen,
+        Directive: validator.checkDirective
     };
     registry.register(checks, validator);
 }
@@ -55,16 +59,60 @@ export class HttpdValidator {
         }
     }
 
-    checkDirectiveContext(directive: Directive, accept: ValidationAcceptor): void {
-        if (directive.name.toLowerCase() !== 'allowoverride') {
+    checkDirective(directive: Directive, accept: ValidationAcceptor): void {
+        this.checkCatalogEntry(directive, 'directive', accept);
+    }
+
+    checkSectionOpen(section: SectionOpen, accept: ValidationAcceptor): void {
+        this.checkCatalogEntry(section, 'section', accept);
+    }
+
+    private checkCatalogEntry(
+        node: Directive | SectionOpen,
+        kind: DirectiveKind,
+        accept: ValidationAcceptor
+    ): void {
+        const directives = apache24Catalog.getDirectives(node.name)
+            .filter(directive => directive.kind === kind);
+        if (directives.length === 0) {
+            accept('warning', `Unknown HTTPD ${kind} "${node.name}".`, {
+                node,
+                property: 'name'
+            });
             return;
         }
-        const section = AstUtils.getContainerOfType(directive, isSection);
-        if (section && section.open.name.toLowerCase() !== 'directory') {
-            accept('error', 'AllowOverride is only valid in a <Directory> section.', {
-                node: directive,
+
+        const context = getNodeContext(node);
+        if (!directives.some(directive => directive.contexts.includes(context))) {
+            const contexts = [...new Set(directives.flatMap(directive => directive.contexts))];
+            accept('error', `${node.name} is not valid in ${context} context. Allowed: ${contexts.join(', ')}.`, {
+                node,
+                property: 'name'
+            });
+        }
+
+        if (!directives.some(directive => acceptsArgumentCount(directive, node.arguments.length))) {
+            const expected = directives.map(directive => formatArgumentCount(directive)).join(' or ');
+            accept('error', `${node.name} expects ${expected}; received ${node.arguments.length}.`, {
+                node,
                 property: 'name'
             });
         }
     }
+}
+
+function acceptsArgumentCount(directive: DirectiveSpec, count: number): boolean {
+    return !directive.arguments
+        || (count >= directive.arguments.min && (directive.arguments.max === undefined || count <= directive.arguments.max));
+}
+
+function formatArgumentCount(directive: DirectiveSpec): string {
+    const { min, max } = directive.arguments!;
+    if (max === undefined) {
+        return `at least ${min} arguments`;
+    }
+    if (min === max) {
+        return `${min} argument${min === 1 ? '' : 's'}`;
+    }
+    return `${min}-${max} arguments`;
 }

@@ -20,11 +20,14 @@ describe('HTTPD validation', () => {
         expect(diagnostic?.range.start).toEqual({ line: 1, character: 2 });
     });
 
-    test('rejects AllowOverride in Location context', async () => {
-        const document = await parse('<Location "/admin">\nAllowOverride All\n</Location>\n');
-        expect(document.diagnostics?.map(diagnostic => diagnostic.message)).toContain(
-            'AllowOverride is only valid in a <Directory> section.'
-        );
+    test('validates directives through the official catalog without stopping on unknown names', async () => {
+        const document = await parse('AllowOverride All\nInclude\nVendorThing value\nListen 80\n');
+        const messages = document.diagnostics?.map(diagnostic => diagnostic.message);
+
+        expect(messages).toContain('AllowOverride is not valid in server context. Allowed: directory.');
+        expect(messages).toContain('Include expects 1 argument; received 0.');
+        expect(messages).toContain('Unknown HTTPD directive "VendorThing".');
+        expect(document.parseResult.value.statements).toHaveLength(4);
     });
 
     test('keeps incomplete and case-insensitive sections available for editing', async () => {

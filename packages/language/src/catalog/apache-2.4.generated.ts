@@ -102,6 +102,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Easily restrict what HTTP methods can be used on the server",
         "compatibility": "Available in Apache 2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_allowmethods.html"
     },
     {
@@ -135,6 +136,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Basic HTTP authentication",
         "compatibility": "Available in Apache 2.1 and later",
+        "since": "2.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_auth_basic.html"
     },
     {
@@ -168,6 +170,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Form authentication",
         "compatibility": "Available in Apache 2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_auth_form.html"
     },
     {
@@ -185,6 +188,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Allows \"anonymous\" user access to authenticated areas",
         "compatibility": "Available in Apache 2.1 and later",
+        "since": "2.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authn_anon.html"
     },
     {
@@ -202,6 +206,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Core Authentication",
         "compatibility": "Available in Apache 2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authn_core.html"
     },
     {
@@ -219,6 +224,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "User authentication using an SQL database",
         "compatibility": "Available in Apache 2.1 and later",
+        "since": "2.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authn_dbd.html"
     },
     {
@@ -236,6 +242,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "User authentication using DBM files",
         "compatibility": "Available in Apache 2.1 and later",
+        "since": "2.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authn_dbm.html"
     },
     {
@@ -253,6 +260,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "User authentication using text files",
         "compatibility": "Available in Apache 2.1 and later",
+        "since": "2.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authn_file.html"
     },
     {
@@ -287,6 +295,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Allows a FastCGI authorizer application to handle Apache httpd authentication and authorization",
         "compatibility": "Available in version 2.4.10 and later",
+        "since": "2.4.10",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authnz_fcgi.html"
     },
     {
@@ -304,6 +313,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Allows an LDAP directory to be used to store the database for HTTP Basic authentication.",
         "compatibility": "Available in version 2.1 and later",
+        "since": "2.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html"
     },
     {
@@ -338,6 +348,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Group Authorization and Login using SQL",
         "compatibility": "Available in Apache 2.4 and later",
+        "since": "2.4",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authz_dbd.html"
     },
     {
@@ -355,6 +366,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Group authorization using DBM files",
         "compatibility": "Available in Apache 2.1 and later",
+        "since": "2.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authz_dbm.html"
     },
     {
@@ -372,6 +384,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Group authorization using plaintext files",
         "compatibility": "Available in Apache 2.1 and later",
+        "since": "2.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authz_groupfile.html"
     },
     {
@@ -406,6 +419,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Authorization based on file ownership",
         "compatibility": "Available in Apache 2.1 and later",
+        "since": "2.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authz_owner.html"
     },
     {
@@ -423,6 +437,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "User Authorization",
         "compatibility": "Available in Apache 2.1 and later",
+        "since": "2.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authz_user.html"
     },
     {
@@ -456,6 +471,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Compress content via Brotli before it is delivered to the client",
         "compatibility": "Available in version 2.4.26 and later.",
+        "since": "2.4.26",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_brotli.html"
     },
     {
@@ -473,6 +489,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Support for request buffering",
         "compatibility": "Available in Apache 2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_buffer.html"
     },
     {
@@ -603,6 +620,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Convert response body into an RFC2397 data URL",
         "compatibility": "Available in Apache 2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_data.html"
     },
     {
@@ -652,6 +670,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Generic locking module for mod_dav",
         "compatibility": "Available in version 2.1 and later",
+        "since": "2.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_dav_lock.html"
     },
     {
@@ -879,6 +898,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Sends messages with server status to frontend proxy",
         "compatibility": "Available in Apache 2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_heartbeat.html"
     },
     {
@@ -896,6 +916,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Centralized monitor for mod_heartbeat origin servers",
         "compatibility": "Available in Apache 2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_heartmonitor.html"
     },
     {
@@ -913,6 +934,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Support for the HTTP/2 transport layer",
         "compatibility": "Available in version 2.4.17 and later",
+        "since": "2.4.17",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html"
     },
     {
@@ -930,6 +952,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "RFC 1413 ident lookups",
         "compatibility": "Available in Apache 2.1 and later",
+        "since": "2.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_ident.html"
     },
     {
@@ -1063,6 +1086,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Heartbeat Traffic Counting load balancer scheduler algorithm for mod_proxy_balancer",
         "compatibility": "Available in version 2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_lbmethod_heartbeat.html"
     },
     {
@@ -1112,6 +1136,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Additional configurable debug logging",
         "compatibility": "Available in Apache 2.3.14 and later",
+        "since": "2.3.14",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_log_debug.html"
     },
     {
@@ -1196,6 +1221,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Managing domains across virtual hosts, certificate provisioning via the ACME protocol",
         "compatibility": "Available in version 2.4.30 and later",
+        "since": "2.4.30",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html"
     },
     {
@@ -1311,6 +1337,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "AJP support module for mod_proxy",
         "compatibility": "Available in version 2.1 and later",
+        "since": "2.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_proxy_ajp.html"
     },
     {
@@ -1328,6 +1355,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "mod_proxy extension for load balancing",
         "compatibility": "Available in version 2.1 and later",
+        "since": "2.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_proxy_balancer.html"
     },
     {
@@ -1361,6 +1389,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Dynamic mass reverse proxy extension for mod_proxy",
         "compatibility": "Available in Apache 2.3.13 and later",
+        "since": "2.3.13",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_proxy_express.html"
     },
     {
@@ -1378,6 +1407,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "FastCGI support module for mod_proxy",
         "compatibility": "Available in version 2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_proxy_fcgi.html"
     },
     {
@@ -1428,6 +1458,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Dynamic health check of Balancer members (workers) for mod_proxy",
         "compatibility": "Available in Apache 2.4.21 and later",
+        "since": "2.4.21",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_proxy_hcheck.html"
     },
     {
@@ -1495,6 +1526,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "SCGI gateway module for mod_proxy",
         "compatibility": "Available in version 2.2.14 and later",
+        "since": "2.2.14",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_proxy_scgi.html"
     },
     {
@@ -1512,6 +1544,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "UWSGI gateway module for mod_proxy",
         "compatibility": "Available in version 2.4.30 and later",
+        "since": "2.4.30",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_proxy_uwsgi.html"
     },
     {
@@ -1613,6 +1646,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Filters to handle and make available HTTP request bodies",
         "compatibility": "Available in Apache 2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_request.html"
     },
     {
@@ -1646,6 +1680,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Filter Input (request) and Output (response) content using sed syntax",
         "compatibility": "Available in Apache 2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_sed.html"
     },
     {
@@ -1663,6 +1698,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Session support",
         "compatibility": "Available in Apache 2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_session.html"
     },
     {
@@ -1680,6 +1716,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Cookie based session support",
         "compatibility": "Available in Apache 2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_session_cookie.html"
     },
     {
@@ -1697,6 +1734,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Session encryption support",
         "compatibility": "Available in Apache 2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_session_crypto.html"
     },
     {
@@ -1714,6 +1752,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "DBD/SQL based session support",
         "compatibility": "Available in Apache 2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_session_dbd.html"
     },
     {
@@ -1844,6 +1883,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Redis based shared object cache provider.",
         "compatibility": "Available in Apache 2.4.39 and later",
+        "since": "2.4.39",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_socache_redis.html"
     },
     {
@@ -1925,6 +1965,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Perform search and replace operations on response bodies",
         "compatibility": "Available in Apache HTTP Server 2.2.7 and later",
+        "since": "2.2.7",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_substitute.html"
     },
     {
@@ -1958,6 +1999,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "Provides better support for systemd integration",
         "compatibility": "Available in Apache 2.4.42 and later",
+        "since": "2.4.42",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_systemd.html"
     },
     {
@@ -2071,6 +2113,7 @@ export const APACHE_2_4_MODULES: readonly ModuleSpec[] = [
         "dependencies": [],
         "description": "provides infrastructure for other modules to periodically run tasks",
         "compatibility": "Available in Apache 2.3 and later",
+        "since": "2.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_watchdog.html"
     },
     {
@@ -2914,6 +2957,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AsyncRequestWorkerFactor factor",
         "default": "2",
         "compatibility": "Available in version 2.3.13 and later",
+        "since": "2.3.13",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/event.html#asyncrequestworkerfactor"
     },
     {
@@ -3257,6 +3301,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthFormBody fieldname",
         "default": "AuthFormBody httpd_body",
         "compatibility": "Available in Apache HTTP Server 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_auth_form.html#authformbody"
     },
     {
@@ -3276,6 +3321,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthFormDisableNoStore On|Off",
         "default": "AuthFormDisableNoStore Off",
         "compatibility": "Available in Apache HTTP Server 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_auth_form.html#authformdisablenostore"
     },
     {
@@ -3295,6 +3341,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthFormFakeBasicAuth On|Off",
         "default": "AuthFormFakeBasicAuth Off",
         "compatibility": "Available in Apache HTTP Server 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_auth_form.html#authformfakebasicauth"
     },
     {
@@ -3314,6 +3361,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthFormLocation fieldname",
         "default": "AuthFormLocation httpd_location",
         "compatibility": "Available in Apache HTTP Server 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_auth_form.html#authformlocation"
     },
     {
@@ -3333,6 +3381,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthFormLoginRequiredLocation url",
         "default": "none",
         "compatibility": "Available in Apache HTTP Server 2.3.0 and later. The use of the expression parser has been added in 2.4.4.",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_auth_form.html#authformloginrequiredlocation"
     },
     {
@@ -3352,6 +3401,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthFormLoginSuccessLocation url",
         "default": "none",
         "compatibility": "Available in Apache HTTP Server 2.3.0 and later. The use of the expression parser has been added in 2.4.4.",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_auth_form.html#authformloginsuccesslocation"
     },
     {
@@ -3371,6 +3421,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthFormLogoutLocation uri",
         "default": "none",
         "compatibility": "Available in Apache HTTP Server 2.3.0 and later. The use of the expression parser has been added in 2.4.4.",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_auth_form.html#authformlogoutlocation"
     },
     {
@@ -3390,6 +3441,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthFormMethod fieldname",
         "default": "AuthFormMethod httpd_method",
         "compatibility": "Available in Apache HTTP Server 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_auth_form.html#authformmethod"
     },
     {
@@ -3409,6 +3461,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthFormMimetype fieldname",
         "default": "AuthFormMimetype httpd_mimetype",
         "compatibility": "Available in Apache HTTP Server 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_auth_form.html#authformmimetype"
     },
     {
@@ -3428,6 +3481,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthFormPassword fieldname",
         "default": "AuthFormPassword httpd_password",
         "compatibility": "Available in Apache HTTP Server 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_auth_form.html#authformpassword"
     },
     {
@@ -3468,6 +3522,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthFormSitePassphrase secret",
         "default": "none",
         "compatibility": "Available in Apache HTTP Server 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_auth_form.html#authformsitepassphrase"
     },
     {
@@ -3487,6 +3542,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthFormSize size",
         "default": "AuthFormSize 8192",
         "compatibility": "Available in Apache HTTP Server 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_auth_form.html#authformsize"
     },
     {
@@ -3506,6 +3562,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthFormUsername fieldname",
         "default": "AuthFormUsername httpd_username",
         "compatibility": "Available in Apache HTTP Server 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_auth_form.html#authformusername"
     },
     {
@@ -3548,6 +3605,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthLDAPAuthorizePrefix prefix",
         "default": "AuthLDAPAuthorizePrefix AUTHORIZE_",
         "compatibility": "Available in version 2.3.6 and later",
+        "since": "2.3.6",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html#authldapauthorizeprefix"
     },
     {
@@ -3649,6 +3707,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthLDAPCompareAsUser on|off",
         "default": "AuthLDAPCompareAsUser off",
         "compatibility": "Available in version 2.3.6 and later",
+        "since": "2.3.6",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html#authldapcompareasuser"
     },
     {
@@ -3755,6 +3814,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthLDAPInitialBindAsUser off|on",
         "default": "AuthLDAPInitialBindAsUser off",
         "compatibility": "Available in version 2.3.6 and later",
+        "since": "2.3.6",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html#authldapinitialbindasuser"
     },
     {
@@ -3777,6 +3837,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthLDAPInitialBindPattern regex substitution",
         "default": "AuthLDAPInitialBindPattern (.*) $1 (remote username used verbatim)",
         "compatibility": "Available in version 2.3.6 and later",
+        "since": "2.3.6",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html#authldapinitialbindpattern"
     },
     {
@@ -3799,6 +3860,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthLDAPMaxSubGroupDepth Number",
         "default": "AuthLDAPMaxSubGroupDepth 10",
         "compatibility": "Available in version 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html#authldapmaxsubgroupdepth"
     },
     {
@@ -3863,6 +3925,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthLDAPSearchAsUser on|off",
         "default": "AuthLDAPSearchAsUser off",
         "compatibility": "Available in version 2.3.6 and later",
+        "since": "2.3.6",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html#authldapsearchasuser"
     },
     {
@@ -3885,6 +3948,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthLDAPSubGroupAttribute attribute",
         "default": "AuthLDAPSubGroupAttribute member uniqueMember",
         "compatibility": "Available in version 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html#authldapsubgroupattribute"
     },
     {
@@ -3907,6 +3971,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "AuthLDAPSubGroupClass LdapObjectClass",
         "default": "AuthLDAPSubGroupClass groupOfNames groupOfUniqueNames",
         "compatibility": "Available in version 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html#authldapsubgroupclass"
     },
     {
@@ -4563,6 +4628,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "CacheDetailHeader on|off",
         "default": "CacheDetailHeader off",
         "compatibility": "Available in Apache 2.3.9 and later",
+        "since": "2.3.9",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_cache.html#cachedetailheader"
     },
     {
@@ -4680,6 +4746,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "CacheHeader on|off",
         "default": "CacheHeader off",
         "compatibility": "Available in Apache 2.3.9 and later",
+        "since": "2.3.9",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_cache.html#cacheheader"
     },
     {
@@ -4796,6 +4863,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Override the base URL of reverse proxied cache keys.",
         "syntax": "CacheKeyBaseURL URL",
         "compatibility": "Available in Apache 2.3.9 and later",
+        "since": "2.3.9",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_cache.html#cachekeybaseurl"
     },
     {
@@ -4837,6 +4905,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "CacheLock on|off",
         "default": "CacheLock off",
         "compatibility": "Available in Apache 2.2.15 and later",
+        "since": "2.2.15",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_cache.html#cachelock"
     },
     {
@@ -5077,6 +5146,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "The shared object cache implementation to use",
         "syntax": "CacheSocache type[:args]",
         "compatibility": "Available in Apache 2.4.5 and later",
+        "since": "2.4.5",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_cache_socache.html#cachesocache"
     },
     {
@@ -5099,6 +5169,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "CacheSocacheMaxSize bytes",
         "default": "CacheSocacheMaxSize 102400",
         "compatibility": "Available in Apache 2.4.5 and later",
+        "since": "2.4.5",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_cache_socache.html#cachesocachemaxsize"
     },
     {
@@ -5121,6 +5192,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "CacheSocacheMaxTime seconds",
         "default": "CacheSocacheMaxTime 86400",
         "compatibility": "Available in Apache 2.4.5 and later",
+        "since": "2.4.5",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_cache_socache.html#cachesocachemaxtime"
     },
     {
@@ -5143,6 +5215,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "CacheSocacheMinTime seconds",
         "default": "CacheSocacheMinTime 600",
         "compatibility": "Available in Apache 2.4.5 and later",
+        "since": "2.4.5",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_cache_socache.html#cachesocachemintime"
     },
     {
@@ -5165,6 +5238,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "CacheSocacheReadSize bytes",
         "default": "CacheSocacheReadSize 0",
         "compatibility": "Available in Apache 2.4.5 and later",
+        "since": "2.4.5",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_cache_socache.html#cachesocachereadsize"
     },
     {
@@ -5187,6 +5261,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "CacheSocacheReadTime milliseconds",
         "default": "CacheSocacheReadTime 0",
         "compatibility": "Available in Apache 2.4.5 and later",
+        "since": "2.4.5",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_cache_socache.html#cachesocachereadtime"
     },
     {
@@ -5209,6 +5284,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "CacheStaleOnError on|off",
         "default": "CacheStaleOnError on",
         "compatibility": "Available in Apache 2.3.9 and later",
+        "since": "2.3.9",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_cache.html#cachestaleonerror"
     },
     {
@@ -5337,6 +5413,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "CGIPassAuth On|Off",
         "default": "CGIPassAuth Off",
         "compatibility": "Available in Apache HTTP Server 2.4.13 and later",
+        "since": "2.4.13",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#cgipassauth"
     },
     {
@@ -5359,6 +5436,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "CGIScriptTimeout time[s|ms]",
         "default": "value of Timeout directive when unset",
         "compatibility": "Available in version 2.4.59 and later.",
+        "since": "2.4.59",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_cgi.html#cgiscripttimeout"
     },
     {
@@ -5380,6 +5458,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Controls how some CGI variables are set",
         "syntax": "CGIVar variable rule",
         "compatibility": "Available in Apache HTTP Server 2.4.21 and later",
+        "since": "2.4.21",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#cgivar"
     },
     {
@@ -5536,6 +5615,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "ChrootDir /path/to/directory",
         "default": "none",
         "compatibility": "Available in Apache 2.2.10 and later",
+        "since": "2.2.10",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_unixd.html#chrootdir"
     },
     {
@@ -5819,6 +5899,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "DavBasePath root-path",
         "default": "None",
         "compatibility": "Available in version 2.4.58 and later",
+        "since": "2.4.58",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_dav.html#davbasepath"
     },
     {
@@ -6147,6 +6228,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "DefaultRuntimeDir directory-path",
         "default": "DefaultRuntimeDir DEFAULT_REL_RUNTIMEDIR (logs/)",
         "compatibility": "Available in Apache 2.4.2 and later",
+        "since": "2.4.2",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#defaultruntimedir"
     },
     {
@@ -6210,6 +6292,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "DeflateAlterETag AddSuffix|NoChange|Remove",
         "default": "DeflateAlterETag AddSuffix",
         "compatibility": "Available in Apache 2.4.58 and later",
+        "since": "2.4.58",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_deflate.html#deflatealteretag"
     },
     {
@@ -6438,6 +6521,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "DirectoryCheckHandler On|Off",
         "default": "DirectoryCheckHandler Off",
         "compatibility": "Available in 2.4.8 and later. Releases prior to 2.4 implicitly act as if \"DirectoryCheckHandler ON\" was specified.",
+        "since": "2.4.8",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_dir.html#directorycheckhandler"
     },
     {
@@ -6485,6 +6569,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "DirectoryIndexRedirect on | off | permanent | temp | seeother | 3xx-code",
         "default": "DirectoryIndexRedirect off",
         "compatibility": "Available in version 2.3.14 and later",
+        "since": "2.3.14",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_dir.html#directoryindexredirect"
     },
     {
@@ -7253,6 +7338,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Sets filename and format of log file",
         "syntax": "GlobalLog file|pipe format|nickname [env=[!]environment-variable| expr=expression]",
         "compatibility": "Available in Apache HTTP Server 2.4.19 and later",
+        "since": "2.4.19",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_log_config.html#globallog"
     },
     {
@@ -7292,6 +7378,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "GracefulShutdownTimeout seconds",
         "default": "GracefulShutdownTimeout 0",
         "compatibility": "Available in version 2.2 and later",
+        "since": "2.2",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mpm_common.html#gracefulshutdowntimeout"
     },
     {
@@ -7332,6 +7419,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "H2CopyFiles on|off",
         "default": "H2CopyFiles off",
         "compatibility": "Available in version 2.4.24 and later.",
+        "since": "2.4.24",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2copyfiles"
     },
     {
@@ -7372,6 +7460,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Add a response header to be picked up in 103 Early Hints",
         "syntax": "H2EarlyHint name value",
         "compatibility": "Available in version 2.4.58 and later.",
+        "since": "2.4.58",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2earlyhint"
     },
     {
@@ -7392,6 +7481,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "H2EarlyHints on|off",
         "default": "H2EarlyHints off",
         "compatibility": "Available in version 2.4.24 and later.",
+        "since": "2.4.24",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2earlyhints"
     },
     {
@@ -7412,6 +7502,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "H2MaxDataFrameLen n",
         "default": "H2MaxDataFrameLen 0",
         "compatibility": "Available in version 2.4.58 and later.",
+        "since": "2.4.58",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2maxdataframelen"
     },
     {
@@ -7432,6 +7523,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "H2MaxHeaderBlockLen n",
         "default": "H2MaxHeaderBlockLen 0",
         "compatibility": "Available in version 2.4.64 and later.",
+        "since": "2.4.64",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2maxheaderblocklen"
     },
     {
@@ -7471,6 +7563,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "H2MaxStreamErrors n",
         "default": "H2MaxStreamErrors 8",
         "compatibility": "Available in version 2.5.1 and later.",
+        "since": "2.5.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2maxstreamerrors"
     },
     {
@@ -7543,6 +7636,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "H2ModernTLSOnly on|off",
         "default": "H2ModernTLSOnly on",
         "compatibility": "Available in version 2.4.18 and later.",
+        "since": "2.4.18",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2moderntlsonly"
     },
     {
@@ -7563,6 +7657,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "H2OutputBuffering on|off",
         "default": "H2OutputBuffering on",
         "compatibility": "Available in version 2.4.48 and later.",
+        "since": "2.4.48",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2outputbuffering"
     },
     {
@@ -7583,6 +7678,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "H2Padding numbits",
         "default": "H2Padding 0",
         "compatibility": "Available in version 2.4.39 and later.",
+        "since": "2.4.39",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2padding"
     },
     {
@@ -7603,6 +7699,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "H2ProxyRequests on|off",
         "default": "H2ProxyRequests off",
         "compatibility": "Available in version 2.4.58 and later.",
+        "since": "2.4.58",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2proxyrequests"
     },
     {
@@ -7625,6 +7722,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "H2Push on|off",
         "default": "H2Push on",
         "compatibility": "Available in version 2.4.18 and later.",
+        "since": "2.4.18",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2push"
     },
     {
@@ -7645,6 +7743,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "H2PushDiarySize n",
         "default": "H2PushDiarySize 256",
         "compatibility": "Available in version 2.4.19 and later.",
+        "since": "2.4.19",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2pushdiarysize"
     },
     {
@@ -7665,6 +7764,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "H2PushPriority mime-type [after|before|interleaved] [weight]",
         "default": "H2PushPriority * After 16",
         "compatibility": "Available in version 2.4.18 and later. For having an effect, a nghttp2 library version 1.5.0 or newer is necessary.",
+        "since": "2.4.18",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2pushpriority"
     },
     {
@@ -7686,6 +7786,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Declares resources for early pushing to the client",
         "syntax": "H2PushResource [add] path [critical]",
         "compatibility": "Available in version 2.4.24 and later.",
+        "since": "2.4.24",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2pushresource"
     },
     {
@@ -7745,6 +7846,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "H2StreamTimeout time-interval[s]",
         "default": "Value of Timeout",
         "compatibility": "Available in version 2.4.55 and later.",
+        "since": "2.4.55",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2streamtimeout"
     },
     {
@@ -7765,6 +7867,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "H2TLSCoolDownSecs seconds",
         "default": "H2TLSCoolDownSecs 1",
         "compatibility": "Available in version 2.4.18 and later.",
+        "since": "2.4.18",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2tlscooldownsecs"
     },
     {
@@ -7785,6 +7888,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "H2TLSWarmUpSize amount",
         "default": "H2TLSWarmUpSize 1048576",
         "compatibility": "Available in version 2.4.18 and later.",
+        "since": "2.4.18",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2tlswarmupsize"
     },
     {
@@ -7826,6 +7930,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "H2WebSockets on|off",
         "default": "H2WebSockets off",
         "compatibility": "Available in version 2.4.58 and later.",
+        "since": "2.4.58",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2websockets"
     },
     {
@@ -8130,6 +8235,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Encloses directives that are processed conditional on the presence or absence of a specific directive",
         "syntax": "<IfDirective [!]directive-name> ... </IfDirective>",
         "compatibility": "Available in 2.4.34 and later.",
+        "since": "2.4.34",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#ifdirective"
     },
     {
@@ -8153,6 +8259,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Encloses directives that will be processed only if file exists at startup",
         "syntax": "<IfFile [!]filename> ... </IfFile>",
         "compatibility": "Available in 2.4.34 and later.",
+        "since": "2.4.34",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#iffile"
     },
     {
@@ -8199,6 +8306,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Encloses directives that are processed conditional on the presence or absence of a specific section directive",
         "syntax": "<IfSection [!]section-name> ... </IfSection>",
         "compatibility": "Available in 2.4.34 and later.",
+        "since": "2.4.34",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#ifsection"
     },
     {
@@ -8330,6 +8438,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Includes other configuration files from within the server configuration files",
         "syntax": "IncludeOptional file-path|directory-path|wildcard",
         "compatibility": "Available in 2.3.6 and later. Not existent file paths without wildcards do not cause SyntaxError after 2.4.30",
+        "since": "2.3.6",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#includeoptional"
     },
     {
@@ -9279,6 +9388,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "ListenTCPDeferAccept integer",
         "default": "ListenTCPDeferAccept 30",
         "compatibility": "Available in Apache HTTP Server 2.5.1 and later",
+        "since": "2.5.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mpm_common.html#listentcpdeferaccept"
     },
     {
@@ -9992,6 +10102,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MaxRangeOverlaps default | unlimited | none | number-of-ranges",
         "default": "MaxRangeOverlaps 20",
         "compatibility": "Available in Apache HTTP Server 2.3.15 and later",
+        "since": "2.3.15",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#maxrangeoverlaps"
     },
     {
@@ -10013,6 +10124,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MaxRangeReversals default | unlimited | none | number-of-ranges",
         "default": "MaxRangeReversals 20",
         "compatibility": "Available in Apache HTTP Server 2.3.15 and later",
+        "since": "2.3.15",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#maxrangereversals"
     },
     {
@@ -10034,6 +10146,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MaxRanges default | unlimited | none | number-of-ranges",
         "default": "MaxRanges 200",
         "compatibility": "Available in Apache HTTP Server 2.3.15 and later",
+        "since": "2.3.15",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#maxranges"
     },
     {
@@ -10129,6 +10242,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "How long to delay activation of new certificates",
         "syntax": "MDActivationDelay duration",
         "compatibility": "Available in version 2.4.42 and later",
+        "since": "2.4.42",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html#mdactivationdelay"
     },
     {
@@ -10236,6 +10350,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Set name and URL pattern for a certificate monitoring site.",
         "syntax": "MDCertificateCheck name url",
         "compatibility": "Available in version 2.4.42 and later",
+        "since": "2.4.42",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html#mdcertificatecheck"
     },
     {
@@ -10360,6 +10475,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MDChallengeDns01Version 1|2",
         "default": "MDChallengeDns01Version 1",
         "compatibility": "Available in version 2.4.58 and later",
+        "since": "2.4.58",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html#mdchallengedns01version"
     },
     {
@@ -10379,6 +10495,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MDCheckInterval duration",
         "default": "MDCheckInterval 12h",
         "compatibility": "Available in version 2.4.60 and later",
+        "since": "2.4.60",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html#mdcheckinterval"
     },
     {
@@ -10397,6 +10514,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Email address used for account registration",
         "syntax": "MDContactEmail address",
         "compatibility": "Available in version 2.4.42 and later",
+        "since": "2.4.42",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html#mdcontactemail"
     },
     {
@@ -10434,6 +10552,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MDExternalAccountBinding key-id hmac-64 | none | file",
         "default": "MDExternalAccountBinding none",
         "compatibility": "Available in version 2.4.52 and later",
+        "since": "2.4.52",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html#mdexternalaccountbinding"
     },
     {
@@ -10470,6 +10589,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MDInitialDelay duration",
         "default": "MDInitialDelay 0s",
         "compatibility": "Available in version 2.4.66 and later",
+        "since": "2.4.66",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html#mdinitialdelay"
     },
     {
@@ -10489,6 +10609,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MDMatchNames all|servernames",
         "default": "MDMatchNames all",
         "compatibility": "Available in version 2.4.58 and later",
+        "since": "2.4.58",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html#mdmatchnames"
     },
     {
@@ -10664,6 +10785,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Use a specific ACME profile from the CA",
         "syntax": "MDProfile name",
         "compatibility": "Available in version 2.4.64 and later",
+        "since": "2.4.64",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html#mdprofile"
     },
     {
@@ -10773,6 +10895,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MDRetryDelay duration",
         "default": "MDRetryDelay 30s",
         "compatibility": "Available in version 2.4.54 and later",
+        "since": "2.4.54",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html#mdretrydelay"
     },
     {
@@ -10792,6 +10915,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MDRetryFailover number",
         "default": "MDRetryFailover 13",
         "compatibility": "Available in version 2.4.54 and later",
+        "since": "2.4.54",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html#mdretryfailover"
     },
     {
@@ -10829,6 +10953,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MDStapleOthers on|off",
         "default": "MDStapleOthers on",
         "compatibility": "Available in version 2.4.42 and later",
+        "since": "2.4.42",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html#mdstapleothers"
     },
     {
@@ -10848,6 +10973,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MDStapling on|off",
         "default": "MDStapling off",
         "compatibility": "Available in version 2.4.42 and later",
+        "since": "2.4.42",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html#mdstapling"
     },
     {
@@ -10867,6 +10993,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MDStaplingKeepResponse duration",
         "default": "MDStaplingKeepResponse 7d",
         "compatibility": "Available in version 2.4.42 and later",
+        "since": "2.4.42",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html#mdstaplingkeepresponse"
     },
     {
@@ -10886,6 +11013,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MDStaplingRenewWindow duration",
         "default": "MDStaplingRenewWindow 33%",
         "compatibility": "Available in version 2.4.42 and later",
+        "since": "2.4.42",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html#mdstaplingrenewwindow"
     },
     {
@@ -10923,6 +11051,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MDStoreLocks on|off|duration",
         "default": "MDStoreLocks off",
         "compatibility": "Available in version 2.4.55 and later",
+        "since": "2.4.55",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_md.html#mdstorelocks"
     },
     {
@@ -10961,6 +11090,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "MemcacheConnTTL num[units]",
         "default": "MemcacheConnTTL 15s",
         "compatibility": "Available in Apache 2.4.17 and later",
+        "since": "2.4.17",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_socache_memcache.html#memcacheconnttl"
     },
     {
@@ -11221,6 +11351,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "Mutex mechanism [default|mutex-name] ... [OmitPID]",
         "default": "Mutex default",
         "compatibility": "Available in Apache HTTP Server 2.3.4 and later",
+        "since": "2.3.4",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#mutex"
     },
     {
@@ -11437,6 +11568,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Protocol for a listening socket",
         "syntax": "Protocol protocol",
         "compatibility": "Available in Apache 2.1.5 and later. On Windows, from Apache 2.3.3 and later.",
+        "since": "2.1.5",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#protocol"
     },
     {
@@ -11535,6 +11667,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "Proxy100Continue Off|On",
         "default": "Proxy100Continue On",
         "compatibility": "Available in version 2.4.40 and later",
+        "since": "2.4.40",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_proxy.html#proxy100continue"
     },
     {
@@ -11556,6 +11689,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "ProxyAddHeaders Off|On",
         "default": "ProxyAddHeaders On",
         "compatibility": "Available in version 2.3.10 and later",
+        "since": "2.3.10",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_proxy.html#proxyaddheaders"
     },
     {
@@ -11710,6 +11844,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "ProxyFCGIBackendType FPM|GENERIC",
         "default": "ProxyFCGIBackendType FPM",
         "compatibility": "Available in version 2.4.26 and later",
+        "since": "2.4.26",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_proxy_fcgi.html#proxyfcgibackendtype"
     },
     {
@@ -11731,6 +11866,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Allow variables sent to FastCGI servers to be fixed up",
         "syntax": "ProxyFCGISetEnvIf conditional-expression [!]environment-variable-name [value-expression]",
         "compatibility": "Available in version 2.4.26 and later",
+        "since": "2.4.26",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_proxy_fcgi.html#proxyfcgisetenvif"
     },
     {
@@ -11752,6 +11888,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "ProxyFtpDirCharset character_set",
         "default": "ProxyFtpDirCharset ISO-8859-1",
         "compatibility": "Available in Apache 2.2.7 and later. Moved from mod_proxy in Apache 2.3.5.",
+        "since": "2.2.7",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_proxy_ftp.html#proxyftpdircharset"
     },
     {
@@ -11773,6 +11910,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "ProxyFtpEscapeWildcards on|off",
         "default": "ProxyFtpEscapeWildcards on",
         "compatibility": "Available in Apache 2.3.3 and later",
+        "since": "2.3.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_proxy_ftp.html#proxyftpescapewildcards"
     },
     {
@@ -11794,6 +11932,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "ProxyFtpListOnWildcard on|off",
         "default": "ProxyFtpListOnWildcard on",
         "compatibility": "Available in Apache 2.3.3 and later",
+        "since": "2.3.3",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_proxy_ftp.html#proxyftplistonwildcard"
     },
     {
@@ -12468,6 +12607,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Set local IP address for outgoing proxy connections",
         "syntax": "ProxySourceAddress address",
         "compatibility": "Available in version 2.3.9 and later",
+        "since": "2.3.9",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_proxy.html#proxysourceaddress"
     },
     {
@@ -12488,6 +12628,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "ProxyStatus Off|On|Full",
         "default": "ProxyStatus Off",
         "compatibility": "Available in version 2.2 and later",
+        "since": "2.2",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_proxy.html#proxystatus"
     },
     {
@@ -12764,6 +12905,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "RedisConnPoolTTL num[units]",
         "default": "RedisConnPoolTTL 15s",
         "compatibility": "Available in Apache 2.4.39 and later",
+        "since": "2.4.39",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_socache_redis.html#redisconnpoolttl"
     },
     {
@@ -12784,6 +12926,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "RedisTimeout num[units]",
         "default": "RedisTimeout 5s",
         "compatibility": "Available in Apache 2.4.39 and later",
+        "since": "2.4.39",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_socache_redis.html#redistimeout"
     },
     {
@@ -12843,6 +12986,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "description": "Register non-standard HTTP methods",
         "syntax": "RegisterHttpMethod method [method [...]]",
         "compatibility": "Available in Apache HTTP Server 2.4.24 and later",
+        "since": "2.4.24",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/core.html#registerhttpmethod"
     },
     {
@@ -13180,6 +13324,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "RequestReadTimeout [handshake=timeout[-maxtimeout][,MinRate=rate] [header=timeout[-maxtimeout][,MinRate=rate] [body=timeout[-maxtimeout][,MinRate=rate]",
         "default": "RequestReadTimeout handshake=0 header=20-40,MinRate=500 body=20,MinRate=500",
         "compatibility": "Available in version 2.2.15 and later; defaulted to disabled in version 2.3.14 and earlier. The handshake stage is available since version 2.4.39.",
+        "since": "2.2.15",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_reqtimeout.html#requestreadtimeout"
     },
     {
@@ -13974,6 +14119,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "SessionCryptoCipher name",
         "default": "SessionCryptoCipher aes256",
         "compatibility": "Available in Apache 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_session_crypto.html#sessioncryptocipher"
     },
     {
@@ -13993,6 +14139,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "SessionCryptoDriver name [param[=value]]",
         "default": "none",
         "compatibility": "Available in Apache 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_session_crypto.html#sessioncryptodriver"
     },
     {
@@ -14015,6 +14162,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "SessionCryptoPassphrase secret [ secret ... ]",
         "default": "none",
         "compatibility": "Available in Apache 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_session_crypto.html#sessioncryptopassphrase"
     },
     {
@@ -14036,6 +14184,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "SessionCryptoPassphraseFile filename",
         "default": "none",
         "compatibility": "Available in Apache 2.3.0 and later",
+        "since": "2.3.0",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_session_crypto.html#sessioncryptopassphrasefile"
     },
     {
@@ -14270,6 +14419,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "SessionExpiryUpdateInterval interval",
         "default": "SessionExpiryUpdateInterval 0 (always update)",
         "compatibility": "Available in Apache 2.4.41 and later",
+        "since": "2.4.41",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_session.html#sessionexpiryupdateinterval"
     },
     {
@@ -14556,6 +14706,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "SSIETag on|off",
         "default": "SSIETag off",
         "compatibility": "Available in version 2.2.15 and later.",
+        "since": "2.2.15",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_include.html#ssietag"
     },
     {
@@ -14576,6 +14727,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "SSILastModified on|off",
         "default": "SSILastModified off",
         "compatibility": "Available in version 2.2.15 and later.",
+        "since": "2.2.15",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_include.html#ssilastmodified"
     },
     {
@@ -14596,6 +14748,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "SSILegacyExprParser on|off",
         "default": "SSILegacyExprParser off",
         "compatibility": "Available in version 2.3.13 and later.",
+        "since": "2.3.13",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_include.html#ssilegacyexprparser"
     },
     {
@@ -14964,6 +15117,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "SSLHonorCipherOrder on|off",
         "default": "SSLHonorCipherOrder off",
         "compatibility": "Available in Apache 2.1 and later",
+        "since": "2.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_ssl.html#sslhonorcipherorder"
     },
     {
@@ -15973,6 +16127,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "SSLStrictSNIVHostCheck on|off",
         "default": "SSLStrictSNIVHostCheck off",
         "compatibility": "Available in Apache 2.2.12 and later",
+        "since": "2.2.12",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mod_ssl.html#sslstrictsnivhostcheck"
     },
     {
@@ -16301,6 +16456,7 @@ export const APACHE_2_4_DIRECTIVES: readonly DirectiveSpec[] = [
         "syntax": "ThreadStackSize size",
         "default": "65536 on NetWare; varies on other operating systems",
         "compatibility": "Available in Apache HTTP Server 2.1 and later",
+        "since": "2.1",
         "documentation": "https://httpd.apache.org/docs/2.4/mod/mpm_common.html#threadstacksize"
     },
     {

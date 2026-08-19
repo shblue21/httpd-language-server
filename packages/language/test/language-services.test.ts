@@ -40,9 +40,9 @@ describe('HTTPD language services', () => {
 
     test('shows official directive metadata on hover', async () => {
         await expectHover(services)({
-            text: 'Server<|>Name example.test',
+            text: 'CacheSoc<|>ache shmcb',
             index: 0,
-            hover: /### ServerName[\s\S]*\*\*Module:\*\* `core`[\s\S]*Apache HTTP Server 2\.4 documentation/
+            hover: /### CacheSocache[\s\S]*\*\*Module:\*\* `mod_cache_socache`[\s\S]*\*\*Since:\*\* 2\.4\.5[\s\S]*Apache HTTP Server 2\.4 documentation/
         });
     });
 });

@@ -52,6 +52,7 @@ for (const fileName of moduleFiles) {
         dependencies: [],
         description: requiredText(root, 'description', fileName),
         compatibility: optionalText(root, 'compatibility'),
+        since: inferSince(optionalText(root, 'compatibility')),
         documentation: `https://httpd.apache.org/docs/2.4/mod/${stem}.html`
     }));
 
@@ -73,6 +74,7 @@ for (const fileName of moduleFiles) {
             : [owner];
         const idSuffix = synopsis.attributes.idtype ?? '';
 
+        const compatibility = optionalText(synopsis, 'compatibility');
         directives.push(compact({
             id: `${owner}:${kind}:${name.toLowerCase()}`,
             owner,
@@ -86,7 +88,8 @@ for (const fileName of moduleFiles) {
             description: requiredText(synopsis, 'description', fileName),
             syntax: requiredText(synopsis, 'syntax', fileName),
             default: optionalText(synopsis, 'default'),
-            compatibility: optionalText(synopsis, 'compatibility'),
+            compatibility,
+            since: inferSince(compatibility),
             documentation: `https://httpd.apache.org/docs/2.4/mod/${stem}.html#${name.toLowerCase()}${idSuffix}`
         }));
     }
@@ -255,6 +258,12 @@ function normalizeContext(context, fileName, directive) {
 
 function splitOverride(value) {
     return value ? value.split(/[\s,]+/).filter(Boolean) : [];
+}
+
+function inferSince(compatibility) {
+    return compatibility?.match(
+        /^Available in (?:(?:Apache HTTP Server|Apache) )?(?:version )?(\d+\.\d+(?:\.\d+)?) and later\b/i
+    )?.[1];
 }
 
 function defaultLoadFileNames(id, identifier) {

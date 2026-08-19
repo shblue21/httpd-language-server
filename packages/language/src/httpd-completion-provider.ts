@@ -8,6 +8,7 @@ import {
 } from 'vscode-languageserver';
 import { apache24Catalog } from './catalog/apache-2.4.js';
 import type { DirectiveContext, DirectiveKind } from './catalog/types.js';
+import { getRootContext, getSectionContext } from './httpd-context.js';
 import { isSection, type HttpdDocument, type Section } from './generated/ast.js';
 
 export class HttpdCompletionProvider implements CompletionProvider {
@@ -124,14 +125,8 @@ function findCompletionContext(
         section = isSection(section.$container) ? section.$container : undefined;
     }
 
-    while (section) {
-        const context = sectionContext(section.open.name);
-        if (context) {
-            return context;
-        }
-        section = isSection(section.$container) ? section.$container : undefined;
-    }
-    return htaccess ? 'htaccess' : 'server';
+    return getSectionContext(section)
+        ?? getRootContext(htaccess ? '/.htaccess' : '/httpd.conf');
 }
 
 function findInnermostSection(statements: HttpdDocument['statements'], offset: number): Section | undefined {
@@ -146,25 +141,6 @@ function findInnermostSection(statements: HttpdDocument['statements'], offset: n
 
 function containsOffset(node: { offset: number; length: number } | undefined, offset: number): boolean {
     return Boolean(node && node.offset <= offset && offset <= node.offset + node.length);
-}
-
-function sectionContext(name: string): DirectiveContext | undefined {
-    switch (name.toLowerCase()) {
-        case 'virtualhost':
-            return 'virtual-host';
-        case 'directory':
-        case 'directorymatch':
-        case 'files':
-        case 'filesmatch':
-        case 'location':
-        case 'locationmatch':
-            return 'directory';
-        case 'proxy':
-        case 'proxymatch':
-            return 'proxy';
-        default:
-            return undefined;
-    }
 }
 
 function emptyCompletionList(): CompletionList {

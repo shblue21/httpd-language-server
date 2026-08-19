@@ -62,6 +62,7 @@ describe('HTTPD catalog', () => {
         expect(new Set(apache24Catalog.directives.map(directive => directive.id)).size).toBe(730);
 
         expect(apache24Catalog.getDirectives('Include')[0].arguments).toEqual({ min: 1, max: 1 });
+        expect(apache24Catalog.getDirectives('CacheSocache')[0].since).toBe('2.4.5');
         expect(apache24Catalog.getDirectives('HeartbeatStorage')).toHaveLength(2);
         expect(apache24Catalog.getDirectives('ProxyPass')[0].modules).toContain('mod_proxy');
         expect(apache24Catalog.getDirectives('RewriteRule')[0].modules).toContain('mod_rewrite');
