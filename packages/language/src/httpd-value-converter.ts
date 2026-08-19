@@ -14,6 +14,8 @@ export class HttpdValueConverter extends DefaultValueConverter {
         switch (rule.name.toUpperCase()) {
             case 'STRING':
                 return convertQuotedArgument(input);
+            case 'SECTION_OPERATOR':
+                return input.trim();
             case 'WORD':
                 return removeLineContinuations(input);
             default:
@@ -51,5 +53,5 @@ function convertQuotedArgument(input: string): string {
 }
 
 function removeLineContinuations(input: string): string {
-    return input.replace(/\\\r?\n/g, '');
+    return input.replace(/\\\r?\n/g, '').replace(/\\\\/g, '\\');
 }

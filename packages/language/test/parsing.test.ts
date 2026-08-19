@@ -38,6 +38,7 @@ ServerName example.test
 bar
 Header set X-Test "literal\n"
 SetEnv QUOTED foo"bar"
+SetEnv WINDOWS C:\\Apache24
 `);
 
         expect(document.parseResult.parserErrors).toHaveLength(0);
@@ -46,6 +47,7 @@ SetEnv QUOTED foo"bar"
         expect(directives[0].arguments).toEqual(['EXAMPLE', 'foobar']);
         expect(directives[1].arguments).toEqual(['set', 'X-Test', String.raw`literal\n`]);
         expect(directives[2].arguments).toEqual(['QUOTED', 'foo"bar"']);
+        expect(directives[3].arguments).toEqual(['WINDOWS', 'C:\\Apache24']);
     });
 
     test('continues comment lines without consuming following directives', async () => {
@@ -60,12 +62,24 @@ Listen 80
         expect(directives.map(directive => directive.name)).toEqual(['Listen']);
     });
 
-    test('preserves inline comments without losing later directives', async () => {
-        const document = await parse('ServerName example.test # not inline\nListen 80\n');
+    test('preserves hash-prefixed argument tails without losing later directives', async () => {
+        const document = await parse('Header set X-Color #fff\nListen 80\n');
 
         expect(document.parseResult.parserErrors).toHaveLength(0);
         const directives = document.parseResult.value.statements.filter(isDirective);
-        expect(directives.map(directive => directive.name)).toEqual(['ServerName', 'Listen']);
-        expect(directives[0].inlineComment).toBe('# not inline');
+        expect(directives.map(directive => directive.name)).toEqual(['Header', 'Listen']);
+        expect(directives[0].inlineComment).toBe('#fff');
+    });
+
+    test('distinguishes IfVersion angle operators from section delimiters', async () => {
+        for (const operator of ['<', '<=', '>', '>=']) {
+            const document = await parse(
+                `<IfVersion ${operator} 2.5.0>   \n</IfVersion>   \n`
+            );
+            expect(document.parseResult.parserErrors).toHaveLength(0);
+            expect(document.parseResult.lexerErrors).toHaveLength(0);
+            const section = document.parseResult.value.statements.find(isSection);
+            expect(section?.open.arguments).toEqual([operator, '2.5.0']);
+        }
     });
 });
