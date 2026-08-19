@@ -19,6 +19,9 @@ export function registerValidationChecks(services: HttpdServices): void {
 
 export class HttpdValidator {
     checkSectionPair(section: Section, accept: ValidationAcceptor): void {
+        if (!section.close) {
+            return;
+        }
         if (section.open.name.toLowerCase() !== section.close.name.toLowerCase()) {
             accept('error', `Closing section </${section.close.name}> does not match <${section.open.name}>.`, {
                 node: section.close,

@@ -8,6 +8,7 @@ import {
     type PartialLangiumServices
 } from 'langium/lsp';
 import { HttpdGeneratedModule, HttpdGeneratedSharedModule } from './generated/module.js';
+import { HttpdValueConverter } from './httpd-value-converter.js';
 import { HttpdValidator, registerValidationChecks } from './httpd-validator.js';
 
 export type HttpdAddedServices = {
@@ -19,6 +20,9 @@ export type HttpdAddedServices = {
 export type HttpdServices = LangiumServices & HttpdAddedServices;
 
 export const HttpdModule: Module<HttpdServices, PartialLangiumServices & HttpdAddedServices> = {
+    parser: {
+        ValueConverter: () => new HttpdValueConverter()
+    },
     validation: {
         HttpdValidator: () => new HttpdValidator()
     }

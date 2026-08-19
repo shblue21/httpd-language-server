@@ -24,7 +24,8 @@ Argument returns string:
     STRING | WORD;
 
 hidden terminal WS: /[ \t\f]+/;
-hidden terminal COMMENT: /#[^\r\n]*/;
+hidden terminal LINE_CONTINUATION: /\\\r?\n/;
+hidden terminal COMMENT: /#(?:\\\r?\n|[^\r\n])*/;
 terminal EOL: /\r?\n/;
-terminal STRING: /"(\\.|[^"\\])*"|'(\\.|[^'\\])*'/;
-terminal WORD: /[^\s<>#'\"]+/;
+terminal STRING: /"(?:\\\r?\n|\\.|[^"\\\r\n])*"|'(?:\\\r?\n|\\.|[^'\\\r\n])*'/;
+terminal WORD: /(?:\\\r?\n|[^\s<>'\"])+/;
