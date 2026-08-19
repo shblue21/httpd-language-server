@@ -6,6 +6,7 @@ import {
 } from 'langium';
 import { minimatch } from 'minimatch';
 import type { Directive } from './generated/ast.js';
+import { HttpdServiceRegistry } from './httpd-service-registry.js';
 
 const MAX_DIRECTORY_DEPTH = 32;
 const MAX_INCLUDED_FILES = 1_000;
@@ -16,7 +17,10 @@ export type IncludeResolution =
     | { status: 'unknown'; targets: readonly [] };
 
 export class HttpdIncludeResolver {
-    constructor(private readonly fileSystem: FileSystemProvider) {}
+    constructor(
+        private readonly fileSystem: FileSystemProvider,
+        private readonly serviceRegistry: HttpdServiceRegistry
+    ) {}
 
     async resolve(document: Pick<LangiumDocument, 'uri'>, directive: Directive): Promise<IncludeResolution> {
         if (!isIncludeDirective(directive) || directive.arguments.length !== 1) {
@@ -35,6 +39,7 @@ export class HttpdIncludeResolver {
                 ? await this.resolveGlob(document.uri, normalized)
                 : await this.resolvePath(document.uri, normalized);
             if (targets.length > 0) {
+                targets.forEach(target => this.serviceRegistry.registerIncluded(target));
                 return { status: 'resolved', targets };
             }
         } catch {

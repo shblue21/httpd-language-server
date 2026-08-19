@@ -5,6 +5,7 @@ import {
     type DefaultSharedModuleContext,
     type LangiumServices,
     type LangiumSharedServices,
+    type PartialLangiumSharedServices,
     type PartialLangiumServices
 } from 'langium/lsp';
 import { HttpdGeneratedModule, HttpdGeneratedSharedModule } from './generated/module.js';
@@ -14,6 +15,7 @@ import { HttpdHoverProvider } from './httpd-hover-provider.js';
 import { HttpdIncludeGraph } from './httpd-include-graph.js';
 import { HttpdIncludeResolver } from './httpd-include-resolver.js';
 import { HttpdRequirementAnalyzer } from './httpd-requirements.js';
+import { HttpdServiceRegistry } from './httpd-service-registry.js';
 import { HttpdValueConverter } from './httpd-value-converter.js';
 import { HttpdValidator, registerValidationChecks } from './httpd-validator.js';
 
@@ -31,6 +33,14 @@ export type HttpdAddedServices = {
 };
 
 export type HttpdServices = LangiumServices & HttpdAddedServices;
+
+export type HttpdSharedServices = LangiumSharedServices & {
+    ServiceRegistry: HttpdServiceRegistry;
+};
+
+export const HttpdSharedModule: Module<HttpdSharedServices, PartialLangiumSharedServices> = {
+    ServiceRegistry: services => new HttpdServiceRegistry(services)
+};
 
 export const HttpdModule: Module<HttpdServices, PartialLangiumServices & HttpdAddedServices> = {
     lsp: {
@@ -56,17 +66,21 @@ export const HttpdModule: Module<HttpdServices, PartialLangiumServices & HttpdAd
             services.shared.workspace.FileSystemProvider,
             services.parser.LangiumParser
         ),
-        IncludeResolver: services => new HttpdIncludeResolver(services.shared.workspace.FileSystemProvider)
+        IncludeResolver: services => new HttpdIncludeResolver(
+            services.shared.workspace.FileSystemProvider,
+            services.shared.ServiceRegistry as HttpdServiceRegistry
+        )
     }
 };
 
 export function createHttpdServices(context: DefaultSharedModuleContext): {
-    shared: LangiumSharedServices;
+    shared: HttpdSharedServices;
     Httpd: HttpdServices;
 } {
     const shared = inject(
         createDefaultSharedModule(context),
-        HttpdGeneratedSharedModule
+        HttpdGeneratedSharedModule,
+        HttpdSharedModule
     );
     const Httpd = inject(
         createDefaultModule({ shared }),

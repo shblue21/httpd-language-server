@@ -40,13 +40,19 @@ describe('HTTPD includes', () => {
         expect(links?.map(link => link.targetUri)).toEqual([
             URI.file(join(directory, 'fragment.inc')).toString()
         ]);
+        expect(services.shared.ServiceRegistry.hasServices(
+            URI.file(join(directory, 'fragment.inc'))
+        )).toBe(true);
+        expect(services.shared.ServiceRegistry.hasServices(
+            URI.file(join(directory, 'unrelated.conf'))
+        )).toBe(false);
         expect(document.diagnostics).toHaveLength(0);
     });
 
     test('reports missing required includes but not missing optional includes', async () => {
         const parse = parseHelper<HttpdDocument>(services.Httpd);
         const document = await parse('Include missing.inc\nIncludeOptional optional.inc\n', {
-            documentUri: URI.file(join(directory, 'missing-httpd.conf')).toString(),
+            documentUri: URI.file(join(directory, 'missing.httpd')).toString(),
             validation: true
         });
 
@@ -58,7 +64,7 @@ describe('HTTPD includes', () => {
     test('resolves wildcard includes in alphabetical order', async () => {
         const parse = parseHelper<HttpdDocument>(services.Httpd);
         const document = await parse('Include conf.d/*.conf\n', {
-            documentUri: URI.file(join(directory, 'glob-httpd.conf')).toString(),
+            documentUri: URI.file(join(directory, 'glob.httpd')).toString(),
             validation: true
         });
         const links = await services.Httpd.lsp.DefinitionProvider?.getDefinition(document, {
@@ -73,9 +79,9 @@ describe('HTTPD includes', () => {
     });
 
     test('tracks occurrence contexts and reports cycles in arbitrary-extension files', async () => {
-        const rootPath = join(directory, 'cycle-httpd.conf');
+        const rootPath = join(directory, 'cycle.httpd');
         await writeFile(join(directory, 'a.inc'), 'Include b.inc\n');
-        await writeFile(join(directory, 'b.inc'), 'Include cycle-httpd.conf\n');
+        await writeFile(join(directory, 'b.inc'), 'Include cycle.httpd\n');
         await writeFile(join(directory, 'broken.inc'), '<Directory "/srv/www">\n');
         await writeFile(rootPath, 'Include a.inc\n');
 
@@ -100,7 +106,7 @@ Include broken.inc
 
         expect(shared.map(occurrence => occurrence.context)).toEqual(['directory', 'virtual-host']);
         expect(document.diagnostics?.map(diagnostic => diagnostic.message)).toContain(
-            'Include cycle detected: cycle-httpd.conf -> a.inc -> b.inc -> cycle-httpd.conf.'
+            'Include cycle detected: cycle.httpd -> a.inc -> b.inc -> cycle.httpd.'
         );
         expect(document.diagnostics?.some(diagnostic =>
             typeof diagnostic.message === 'string'
