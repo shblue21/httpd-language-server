@@ -15,7 +15,7 @@ export function validateCatalogEntry(
     name: string,
     kind: DirectiveKind,
     argumentCount: number,
-    context: DirectiveContext
+    context: DirectiveContext | readonly DirectiveContext[]
 ): readonly CatalogIssue[] {
     const directives = apache24Catalog.getDirectives(name)
         .filter(directive => directive.kind === kind);
@@ -24,12 +24,13 @@ export function validateCatalogEntry(
     }
 
     const issues: CatalogIssue[] = [];
-    const capabilities = getContextCapabilities(context);
+    const activeContexts = typeof context === 'string' ? [context] : context;
+    const capabilities = [...new Set(activeContexts.flatMap(getContextCapabilities))];
     if (!directives.some(directive => directive.contexts.some(item => capabilities.includes(item)))) {
-        const contexts = [...new Set(directives.flatMap(directive => directive.contexts))];
+        const allowedContexts = [...new Set(directives.flatMap(directive => directive.contexts))];
         issues.push({
             severity: 'error',
-            message: `${name} is not valid in ${context} context. Allowed: ${contexts.join(', ')}.`
+            message: `${name} is not valid in ${activeContexts.join(' or ')} context. Allowed: ${allowedContexts.join(', ')}.`
         });
     }
 

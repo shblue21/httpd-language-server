@@ -232,6 +232,7 @@ Define MAYBE yes
         await writeFile(join(directory, 'a.inc'), 'Include b.inc\n');
         await writeFile(join(directory, 'b.inc'), 'Include cycle.httpd\n');
         await writeFile(join(directory, 'broken.inc'), '<Directory "/srv/www">\n');
+        await writeFile(join(directory, 'mismatched.inc'), '<Directory "/srv">\n</Location>\n');
         await writeFile(rootPath, 'Include a.inc\n');
 
         const parse = parseHelper<HttpdDocument>(services.Httpd);
@@ -244,6 +245,7 @@ Define MAYBE yes
 </VirtualHost>
 Include a.inc
 Include broken.inc
+Include mismatched.inc
 `, {
             documentUri: URI.file(rootPath).toString(),
             validation: true
@@ -263,6 +265,9 @@ Include broken.inc
         )).toBe(true);
         expect(document.diagnostics?.map(diagnostic => diagnostic.message)).toContain(
             'Included file "shared.inc": Require is not valid in virtual-host context. Allowed: directory, htaccess.'
+        );
+        expect(document.diagnostics?.map(diagnostic => diagnostic.message)).toContain(
+            'Included file "mismatched.inc": Closing section </Location> does not match <Directory>.'
         );
         expect(graph.documents.has(URI.file(join(directory, 'shared.inc')).toString())).toBe(true);
     });

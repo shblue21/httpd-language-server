@@ -3,6 +3,7 @@ import {
     type LangiumDocument,
     type LangiumParser,
     type ParseResult,
+    type TextDocumentProvider,
     type URI
 } from 'langium';
 import type { DirectiveContext } from './catalog/types.js';
@@ -18,11 +19,13 @@ import {
 } from './httpd-conditions.js';
 import { getRootContext, getSectionOwnContext } from './httpd-context.js';
 import { HttpdIncludeResolver, isIncludeDirective } from './httpd-include-resolver.js';
+import { HttpdServiceRegistry } from './httpd-service-registry.js';
 import {
     isDirective,
     isSection,
     type Directive,
     type HttpdDocument,
+    type Section,
     type Statement
 } from './generated/ast.js';
 
@@ -77,7 +80,9 @@ export class HttpdIncludeGraph {
     constructor(
         private readonly includes: HttpdIncludeResolver,
         private readonly fileSystem: FileSystemProvider,
-        private readonly parser: LangiumParser
+        private readonly parser: LangiumParser,
+        private readonly serviceRegistry: HttpdServiceRegistry,
+        private readonly textDocuments?: TextDocumentProvider
     ) {}
 
     async build(root: LangiumDocument<HttpdDocument>): Promise<IncludeGraph> {
@@ -109,6 +114,7 @@ export class HttpdIncludeGraph {
             facts,
             state
         );
+        this.serviceRegistry.replaceIncluded(root.uri, state.occurrences);
         return state;
     }
 
@@ -125,6 +131,7 @@ export class HttpdIncludeGraph {
     ): Promise<void> {
         for (const statement of statements) {
             if (isSection(statement)) {
+                this.recordSectionIssues(statement, uri, rootOrigin, condition, state);
                 this.recordSemanticIssues(
                     statement.open.name,
                     'section',
@@ -281,7 +288,9 @@ export class HttpdIncludeGraph {
         let result = state.documents.get(key);
         if (!result) {
             try {
-                result = this.parser.parse<HttpdDocument>(await this.fileSystem.readFile(uri));
+                const text = this.textDocuments?.get(uri)?.getText()
+                    ?? await this.fileSystem.readFile(uri);
+                result = this.parser.parse<HttpdDocument>(text);
                 state.documents.set(key, result);
             } catch {
                 return undefined;
@@ -296,7 +305,50 @@ export class HttpdIncludeGraph {
                 uri
             });
         }
+        for (const close of result.value.orphanClosings) {
+            state.semanticIssues.push({
+                message: `Closing section </${close.name}> has no matching opening section.`,
+                origin,
+                severity: condition === 'unknown' ? 'warning' : 'error',
+                uri
+            });
+        }
         return result;
+    }
+
+    private recordSectionIssues(
+        section: Section,
+        uri: URI,
+        rootOrigin: Directive | undefined,
+        condition: Exclude<ConditionState, 'inactive'>,
+        state: MutableGraph
+    ): void {
+        if (!rootOrigin) {
+            return;
+        }
+        const messages: string[] = [];
+        if (!section.open.terminated) {
+            messages.push(`Opening section <${section.open.name}> is missing ">".`);
+        }
+        if (section.close && !section.close.terminated) {
+            messages.push(`Closing section </${section.close.name}> is missing ">".`);
+        }
+        if (
+            section.close
+            && section.open.name.toLowerCase() !== section.close.name.toLowerCase()
+        ) {
+            messages.push(
+                `Closing section </${section.close.name}> does not match <${section.open.name}>.`
+            );
+        }
+        for (const message of messages) {
+            state.semanticIssues.push({
+                message,
+                origin: rootOrigin,
+                severity: condition === 'unknown' ? 'warning' : 'error',
+                uri
+            });
+        }
     }
 
     private recordSemanticIssues(

@@ -12,7 +12,6 @@ import {
     type Directive,
     type Statement
 } from './generated/ast.js';
-import { HttpdServiceRegistry } from './httpd-service-registry.js';
 
 const MAX_DIRECTORY_DEPTH = 32;
 const MAX_INCLUDED_FILES = 1_000;
@@ -23,10 +22,7 @@ export type IncludeResolution =
     | { status: 'unknown'; targets: readonly [] };
 
 export class HttpdIncludeResolver {
-    constructor(
-        private readonly fileSystem: FileSystemProvider,
-        private readonly serviceRegistry: HttpdServiceRegistry
-    ) {}
+    constructor(private readonly fileSystem: FileSystemProvider) {}
 
     async resolve(
         document: Pick<LangiumDocument, 'uri'> & Partial<Pick<LangiumDocument, 'parseResult'>>,
@@ -58,7 +54,6 @@ export class HttpdIncludeResolver {
                 ? await this.resolveGlob(base, normalized)
                 : await this.resolvePath(base, normalized);
             if (result.targets.length > 0 || result.truncated) {
-                result.targets.forEach(target => this.serviceRegistry.registerIncluded(target));
                 return { status: 'resolved', ...result };
             }
         } catch {

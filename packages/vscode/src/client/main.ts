@@ -1,5 +1,5 @@
 import * as path from 'node:path';
-import type * as vscode from 'vscode';
+import * as vscode from 'vscode';
 import {
     LanguageClient,
     TransportKind,
@@ -31,6 +31,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         clientOptions
     );
     await client.start();
+
+    const enableIncludedDocument = async (document: vscode.TextDocument): Promise<void> => {
+        if (document.languageId === 'httpd' || document.uri.scheme !== 'file') {
+            return;
+        }
+        const included = await client?.sendRequest<boolean>('httpd/isIncludedDocument', {
+            uri: document.uri.toString()
+        });
+        if (included) {
+            await vscode.languages.setTextDocumentLanguage(document, 'httpd');
+        }
+    };
+    context.subscriptions.push(
+        vscode.workspace.onDidOpenTextDocument(document => void enableIncludedDocument(document))
+    );
+    await Promise.all(vscode.workspace.textDocuments.map(enableIncludedDocument));
 }
 
 export function deactivate(): Thenable<void> | undefined {

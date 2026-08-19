@@ -33,10 +33,12 @@ export type HttpdAddedServices = {
     };
 };
 
-export type HttpdServices = LangiumServices & HttpdAddedServices;
-
 export type HttpdSharedServices = LangiumSharedServices & {
     ServiceRegistry: HttpdServiceRegistry;
+};
+
+export type HttpdServices = LangiumServices & HttpdAddedServices & {
+    shared: HttpdSharedServices;
 };
 
 export const HttpdSharedModule: Module<HttpdSharedServices, PartialLangiumSharedServices> = {
@@ -45,7 +47,9 @@ export const HttpdSharedModule: Module<HttpdSharedServices, PartialLangiumShared
 
 export const HttpdModule: Module<HttpdServices, PartialLangiumServices & HttpdAddedServices> = {
     lsp: {
-        CompletionProvider: () => new HttpdCompletionProvider(),
+        CompletionProvider: services => new HttpdCompletionProvider(
+            services.shared.ServiceRegistry as HttpdServiceRegistry
+        ),
         DefinitionProvider: services => new HttpdDefinitionProvider(services.workspace.IncludeGraph),
         HoverProvider: services => new HttpdHoverProvider(
             services.semantic.Requirements,
@@ -59,7 +63,8 @@ export const HttpdModule: Module<HttpdServices, PartialLangiumServices & HttpdAd
     validation: {
         HttpdValidator: services => new HttpdValidator(
             services.workspace.IncludeGraph,
-            services.semantic.Requirements
+            services.semantic.Requirements,
+            services.shared.ServiceRegistry as HttpdServiceRegistry
         )
     },
     semantic: {
@@ -69,11 +74,12 @@ export const HttpdModule: Module<HttpdServices, PartialLangiumServices & HttpdAd
         IncludeGraph: services => new HttpdIncludeGraph(
             services.workspace.IncludeResolver,
             services.shared.workspace.FileSystemProvider,
-            services.parser.LangiumParser
+            services.parser.LangiumParser,
+            services.shared.ServiceRegistry as HttpdServiceRegistry,
+            services.shared.workspace.TextDocuments
         ),
         IncludeResolver: services => new HttpdIncludeResolver(
-            services.shared.workspace.FileSystemProvider,
-            services.shared.ServiceRegistry as HttpdServiceRegistry
+            services.shared.workspace.FileSystemProvider
         )
     }
 };

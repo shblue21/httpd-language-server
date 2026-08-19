@@ -15,6 +15,7 @@ import { getNodeContext } from './httpd-context.js';
 import { HttpdIncludeGraph } from './httpd-include-graph.js';
 import type { HttpdServices } from './httpd-module.js';
 import { HttpdRequirementAnalyzer } from './httpd-requirements.js';
+import { HttpdServiceRegistry } from './httpd-service-registry.js';
 
 export function registerValidationChecks(services: HttpdServices): void {
     const registry = services.validation.ValidationRegistry;
@@ -35,7 +36,8 @@ export function registerValidationChecks(services: HttpdServices): void {
 export class HttpdValidator {
     constructor(
         private readonly includeGraph: HttpdIncludeGraph,
-        private readonly requirements: HttpdRequirementAnalyzer
+        private readonly requirements: HttpdRequirementAnalyzer,
+        private readonly serviceRegistry: HttpdServiceRegistry
     ) {}
 
     checkOrphanSectionClosings(document: HttpdDocument, accept: ValidationAcceptor): void {
@@ -137,7 +139,8 @@ export class HttpdValidator {
         kind: DirectiveKind,
         accept: ValidationAcceptor
     ): void {
-        const context = getNodeContext(node);
+        const includedContexts = this.serviceRegistry.getIncludedContexts(AstUtils.getDocument(node).uri);
+        const context = includedContexts.length > 0 ? includedContexts : getNodeContext(node);
         for (const issue of validateCatalogEntry(
             node.name,
             kind,

@@ -14,9 +14,12 @@ import {
     getSectionContext
 } from './httpd-context.js';
 import { isSection, type HttpdDocument, type Section } from './generated/ast.js';
+import { HttpdServiceRegistry } from './httpd-service-registry.js';
 
 export class HttpdCompletionProvider implements CompletionProvider {
     readonly completionOptions = { triggerCharacters: ['<'] };
+
+    constructor(private readonly serviceRegistry: HttpdServiceRegistry) {}
 
     getCompletion(document: LangiumDocument, params: CompletionParams): CompletionList {
         const cursor = getCursor(document, params);
@@ -30,7 +33,9 @@ export class HttpdCompletionProvider implements CompletionProvider {
             cursor.kind,
             document.uri.path.endsWith('/.htaccess')
         );
-        const capabilities = getContextCapabilities(context);
+        const includedContexts = this.serviceRegistry.getIncludedContexts(document.uri);
+        const contexts = includedContexts.length > 0 ? includedContexts : [context];
+        const capabilities = [...new Set(contexts.flatMap(getContextCapabilities))];
         const seen = new Set<string>();
         const items: CompletionItem[] = [];
 

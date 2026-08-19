@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, test } from 'vitest';
-import { EmptyFileSystem } from 'langium';
+import { EmptyFileSystem, URI } from 'langium';
 import { expectCompletion, expectHover, parseHelper } from 'langium/test';
 import { createHttpdServices, type HttpdServices } from '../src/index.js';
 
@@ -54,6 +54,22 @@ describe('HTTPD language services', () => {
                 assert: completions => expect(completions.items).toHaveLength(0)
             });
         }
+    });
+
+    test('uses discovered occurrence context for arbitrary-extension fragments', async () => {
+        const fragment = URI.parse('file:///fragment.inc');
+        services.shared.ServiceRegistry.replaceIncluded(URI.parse('file:///httpd.conf'), [{
+            context: 'directory',
+            targetUri: fragment
+        }]);
+        await expectCompletion(services)({
+            text: 'Req<|>',
+            index: 0,
+            parseOptions: { documentUri: fragment.toString() },
+            assert: completions => {
+                expect(completions.items.map(item => item.label)).toContain('Require');
+            }
+        });
     });
 
     test('shows official directive metadata on hover', async () => {
