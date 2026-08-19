@@ -1,3 +1,4 @@
+export * from './catalog/index.js';
 export * from './httpd-module.js';
 export * from './httpd-validator.js';
 export * from './generated/ast.js';
