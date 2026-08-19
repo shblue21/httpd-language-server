@@ -108,6 +108,20 @@ describe('HTTPD includes', () => {
         expect(links?.[0].targetUri).toBe(URI.file(join(root, 'conf', 'extra.inc')).toString());
     });
 
+    test('does not apply a later ServerRoot to an earlier include', async () => {
+        const parse = parseHelper<HttpdDocument>(services.Httpd);
+        const document = await parse('Include conf/extra.inc\nServerRoot server-root\n', {
+            documentUri: URI.file(join(directory, 'ordered-root.httpd')).toString(),
+            validation: true
+        });
+        const links = await services.Httpd.lsp.DefinitionProvider?.getDefinition(document, {
+            textDocument: { uri: document.uri.toString() },
+            position: { line: 0, character: 12 }
+        });
+
+        expect(links).toBeUndefined();
+    });
+
     test('does not read absolute or escaping target paths from the host', async () => {
         const parse = parseHelper<HttpdDocument>(services.Httpd);
         const absolute = join(directory, 'fragment.inc');

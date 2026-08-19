@@ -5,13 +5,7 @@ import {
     type LangiumDocument
 } from 'langium';
 import { minimatch } from 'minimatch';
-import {
-    isDirective,
-    isHttpdDocument,
-    isSection,
-    type Directive,
-    type Statement
-} from './generated/ast.js';
+import type { Directive } from './generated/ast.js';
 
 const MAX_DIRECTORY_DEPTH = 32;
 const MAX_INCLUDED_FILES = 1_000;
@@ -34,7 +28,7 @@ export class HttpdIncludeResolver {
             return { status: 'unknown', targets: [] };
         }
 
-        const variables = definitions ?? this.getDefinitions(document, directive);
+        const variables = definitions ?? new Map();
         const path = substituteVariables(directive.arguments[0], variables);
         if (path === undefined) {
             return { status: 'unknown', targets: [] };
@@ -46,7 +40,7 @@ export class HttpdIncludeResolver {
             return { status: 'unknown', targets: [] };
         }
         try {
-            const base = configurationBase ?? await this.getConfigurationBase(document);
+            const base = configurationBase ?? UriUtils.dirname(document.uri);
             if (pathEscapesBase(normalized)) {
                 return { status: 'unknown', targets: [] };
             }
@@ -65,54 +59,23 @@ export class HttpdIncludeResolver {
             : { status: 'missing', targets: [] };
     }
 
-    async getConfigurationBase(
-        document: Pick<LangiumDocument, 'uri'> & Partial<Pick<LangiumDocument, 'parseResult'>>
-    ): Promise<URI> {
-        const fallback = UriUtils.dirname(document.uri);
-        const root = document.parseResult?.value;
-        if (!root || !isHttpdDocument(root)) {
-            return fallback;
-        }
-
-        const serverRoot = root.statements.find(statement =>
-            isDirective(statement) && statement.name.toLowerCase() === 'serverroot'
-        );
-        if (!serverRoot || !isDirective(serverRoot) || !serverRoot.arguments[0]) {
-            return fallback;
-        }
-
-        const expanded = substituteVariables(
-            serverRoot.arguments[0],
-            this.getDefinitions(document, serverRoot)
-        );
+    async resolveServerRoot(
+        base: URI,
+        value: string,
+        definitions: ReadonlyMap<string, string | true>
+    ): Promise<URI | undefined> {
+        const expanded = substituteVariables(value, definitions);
         if (
             expanded === undefined
             || isAbsoluteConfigurationPath(expanded)
             || pathEscapesBase(expanded.replaceAll('\\', '/'))
         ) {
-            return fallback;
+            return undefined;
         }
-        const candidate = resolveConfigurationPath(
-            document.uri,
-            expanded.replaceAll('\\', '/')
-        );
+        const candidate = UriUtils.resolvePath(base, expanded.replaceAll('\\', '/'));
         return await this.fileSystem.exists(candidate) && (await this.fileSystem.stat(candidate)).isDirectory
             ? candidate
-            : fallback;
-    }
-
-    getDefinitions(
-        document: Partial<Pick<LangiumDocument, 'parseResult'>>,
-        before?: Directive
-    ): ReadonlyMap<string, string | true> {
-        const definitions = new Map<string, string | true>();
-        const root = document.parseResult?.value;
-        if (!root || !isHttpdDocument(root)) {
-            return definitions;
-        }
-
-        collectDefinitions(root.statements, definitions, before);
-        return definitions;
+            : undefined;
     }
 
     private async resolvePath(base: URI, path: string): Promise<ResolvedTargets> {
@@ -194,28 +157,6 @@ export class HttpdIncludeResolver {
 interface ResolvedTargets {
     targets: readonly URI[];
     truncated: boolean;
-}
-
-function collectDefinitions(
-    statements: readonly Statement[],
-    definitions: Map<string, string | true>,
-    before: Directive | undefined
-): boolean {
-    for (const statement of statements) {
-        if (statement === before) {
-            return true;
-        }
-        if (isDirective(statement) && statement.arguments[0]) {
-            if (statement.name.toLowerCase() === 'define') {
-                definitions.set(statement.arguments[0], statement.arguments[1] ?? true);
-            } else if (statement.name.toLowerCase() === 'undefine') {
-                definitions.delete(statement.arguments[0]);
-            }
-        } else if (isSection(statement) && collectDefinitions(statement.statements, definitions, before)) {
-            return true;
-        }
-    }
-    return false;
 }
 
 export function isIncludeDirective(directive: Directive): boolean {

@@ -15,6 +15,15 @@ export function getNodeContext(node: AstNode): DirectiveContext {
     return getSectionContext(section) ?? getRootContext(AstUtils.getDocument(node).uri.path);
 }
 
+export function getNodeSectionName(node: AstNode): string | undefined {
+    if (isSectionOpen(node) && isSection(node.$container)) {
+        return isSection(node.$container.$container)
+            ? node.$container.$container.open.name
+            : undefined;
+    }
+    return AstUtils.getContainerOfType(node, isSection)?.open.name;
+}
+
 export function getSectionContext(section: Section | undefined): DirectiveContext | undefined {
     while (section) {
         const context = getSectionOwnContext(section.open.name);

@@ -1,4 +1,5 @@
 import {
+    UriUtils,
     type FileSystemProvider,
     type LangiumDocument,
     type LangiumParser,
@@ -35,6 +36,7 @@ export interface IncludeOccurrence {
     condition: Exclude<ConditionState, 'inactive'>;
     context: DirectiveContext;
     order: number;
+    sectionName?: string;
     source: Directive;
     sourceUri: URI;
     targetUri: URI;
@@ -96,8 +98,8 @@ export class HttpdIncludeGraph {
             syntaxIssues: [],
             truncatedIncludes: []
         };
-        const configurationBase = await this.includes.getConfigurationBase(root);
         const facts: GraphFacts = {
+            configurationBase: UriUtils.dirname(root.uri),
             defines: new Map(),
             loadedModuleAliases: new Set(),
             loadedModules: new Set(['core']),
@@ -107,9 +109,9 @@ export class HttpdIncludeGraph {
             root.parseResult.value.statements,
             root.uri,
             getRootContext(root.uri.path),
+            undefined,
             [root.uri],
             undefined,
-            configurationBase,
             'active',
             facts,
             state
@@ -122,9 +124,9 @@ export class HttpdIncludeGraph {
         statements: readonly Statement[],
         uri: URI,
         context: DirectiveContext,
+        sectionName: string | undefined,
         stack: readonly URI[],
         rootOrigin: Directive | undefined,
-        configurationBase: URI,
         condition: Exclude<ConditionState, 'inactive'>,
         facts: GraphFacts,
         state: MutableGraph
@@ -137,6 +139,7 @@ export class HttpdIncludeGraph {
                     'section',
                     statement.open.arguments,
                     context,
+                    sectionName,
                     uri,
                     rootOrigin,
                     condition,
@@ -161,9 +164,9 @@ export class HttpdIncludeGraph {
                     statement.statements,
                     uri,
                     getSectionOwnContext(statement.open.name) ?? context,
+                    statement.open.name,
                     stack,
                     rootOrigin,
-                    configurationBase,
                     effectiveCondition,
                     branchFacts,
                     state
@@ -177,20 +180,21 @@ export class HttpdIncludeGraph {
                     'directive',
                     statement.arguments,
                     context,
+                    sectionName,
                     uri,
                     rootOrigin,
                     condition,
                     state
                 );
-                this.updateFacts(statement, facts);
+                await this.updateFacts(statement, facts);
                 if (isIncludeDirective(statement)) {
                     await this.visitInclude(
                         statement,
                         uri,
                         context,
+                        sectionName,
                         stack,
                         rootOrigin,
-                        configurationBase,
                         condition,
                         facts,
                         state
@@ -204,17 +208,20 @@ export class HttpdIncludeGraph {
         directive: Directive,
         sourceUri: URI,
         context: DirectiveContext,
+        sectionName: string | undefined,
         stack: readonly URI[],
         rootOrigin: Directive | undefined,
-        configurationBase: URI,
         condition: Exclude<ConditionState, 'inactive'>,
         facts: GraphFacts,
         state: MutableGraph
     ): Promise<void> {
+        if (!facts.configurationBase) {
+            return;
+        }
         const resolution = await this.includes.resolve(
             { uri: sourceUri },
             directive,
-            configurationBase,
+            facts.configurationBase,
             facts.defines
         );
         if (resolution.status !== 'resolved') {
@@ -245,6 +252,7 @@ export class HttpdIncludeGraph {
                 condition,
                 context,
                 order: state.order++,
+                sectionName,
                 source: directive,
                 sourceUri,
                 targetUri
@@ -268,9 +276,9 @@ export class HttpdIncludeGraph {
                 result.value.statements,
                 targetUri,
                 context,
+                sectionName,
                 [...stack, targetUri],
                 origin,
-                configurationBase,
                 condition,
                 facts,
                 state
@@ -356,6 +364,7 @@ export class HttpdIncludeGraph {
         kind: 'directive' | 'section',
         args: readonly string[],
         context: DirectiveContext,
+        sectionName: string | undefined,
         uri: URI,
         rootOrigin: Directive | undefined,
         condition: Exclude<ConditionState, 'inactive'>,
@@ -365,7 +374,7 @@ export class HttpdIncludeGraph {
             return;
         }
         const issues = [
-            ...validateCatalogEntry(name, kind, args.length, context),
+            ...validateCatalogEntry(name, kind, args.length, context, sectionName),
             ...validateArgumentShapes(name, kind, args)
         ];
         for (const issue of issues) {
@@ -378,7 +387,7 @@ export class HttpdIncludeGraph {
         }
     }
 
-    private updateFacts(directive: Directive, facts: GraphFacts): void {
+    private async updateFacts(directive: Directive, facts: GraphFacts): Promise<void> {
         const [first, second] = directive.arguments;
         switch (directive.name.toLowerCase()) {
             case 'define':
@@ -407,6 +416,15 @@ export class HttpdIncludeGraph {
                 }
                 break;
             }
+            case 'serverroot':
+                if (first && facts.configurationBase) {
+                    facts.configurationBase = await this.includes.resolveServerRoot(
+                        facts.configurationBase,
+                        first,
+                        facts.defines
+                    );
+                }
+                break;
         }
     }
 }
@@ -423,6 +441,7 @@ interface MutableGraph {
 }
 
 interface GraphFacts {
+    configurationBase?: URI;
     defines: Map<string, string | true>;
     loadedModuleAliases: Set<string>;
     loadedModules: Set<string>;
@@ -431,6 +450,7 @@ interface GraphFacts {
 
 function cloneFacts(facts: GraphFacts): GraphFacts {
     return {
+        configurationBase: facts.configurationBase,
         defines: new Map(facts.defines),
         loadedModuleAliases: new Set(facts.loadedModuleAliases),
         loadedModules: new Set(facts.loadedModules),
@@ -439,6 +459,9 @@ function cloneFacts(facts: GraphFacts): GraphFacts {
 }
 
 function joinUnknownFacts(facts: GraphFacts, branch: GraphFacts): void {
+    if (facts.configurationBase?.toString() !== branch.configurationBase?.toString()) {
+        facts.configurationBase = undefined;
+    }
     const names = new Set([
         ...facts.defines.keys(),
         ...facts.undefinedDefines,

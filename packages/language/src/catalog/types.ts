@@ -52,4 +52,5 @@ export interface DirectiveSpec extends VersionMetadata {
     documentation: string;
     arguments?: ArgumentCount;
     argumentShape?: 'listen';
+    allowedSections?: readonly string[];
 }

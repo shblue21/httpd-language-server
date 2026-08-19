@@ -66,6 +66,14 @@ describe('HTTPD validation', () => {
         expect(document.diagnostics).toHaveLength(0);
     });
 
+    test('keeps Directory-only overrides out of Location sections', async () => {
+        const document = await parse('<Location "/admin">\nAllowOverride All\n</Location>\n');
+
+        expect(document.diagnostics?.map(diagnostic => diagnostic.message)).toContain(
+            'AllowOverride is only valid in <directory> sections.'
+        );
+    });
+
     test('validates a focused high-value argument shape', async () => {
         const document = await parse('Listen bananas\nListen 127.0.0.1:8080\n');
 

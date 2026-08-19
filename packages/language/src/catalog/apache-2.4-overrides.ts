@@ -13,6 +13,8 @@ export const APACHE_2_4_MODULE_OVERRIDES: Readonly<Record<string, ModuleOverride
 };
 
 export const APACHE_2_4_DIRECTIVE_OVERRIDES: Readonly<Record<string, DirectiveOverride>> = {
+    'core:directive:allowoverride': { allowedSections: ['directory'] },
+    'core:directive:allowoverridelist': { allowedSections: ['directory'] },
     'core:directive:define': { arguments: { min: 1, max: 2 } },
     'core:directive:include': { arguments: { min: 1, max: 1 } },
     'core:directive:includeoptional': { arguments: { min: 1, max: 1 } },

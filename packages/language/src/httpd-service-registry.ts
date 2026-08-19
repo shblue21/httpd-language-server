@@ -8,7 +8,7 @@ import {
 import type { DirectiveContext } from './catalog/types.js';
 
 export class HttpdServiceRegistry extends DefaultServiceRegistry {
-    private readonly includesByRoot = new Map<string, Map<string, Set<DirectiveContext>>>();
+    private readonly includesByRoot = new Map<string, Map<string, IncludedContext>>();
 
     constructor(services: LangiumSharedCoreServices) {
         super(services);
@@ -16,14 +16,21 @@ export class HttpdServiceRegistry extends DefaultServiceRegistry {
 
     replaceIncluded(
         root: URI,
-        occurrences: readonly { context: DirectiveContext; targetUri: URI }[]
+        occurrences: readonly {
+            context: DirectiveContext;
+            sectionName?: string;
+            targetUri: URI;
+        }[]
     ): void {
-        const included = new Map<string, Set<DirectiveContext>>();
+        const included = new Map<string, IncludedContext>();
         for (const occurrence of occurrences) {
             const key = UriUtils.normalize(occurrence.targetUri);
-            const contexts = included.get(key) ?? new Set();
-            contexts.add(occurrence.context);
-            included.set(key, contexts);
+            const entry = included.get(key) ?? { contexts: new Set(), sections: new Set() };
+            entry.contexts.add(occurrence.context);
+            if (occurrence.sectionName) {
+                entry.sections.add(occurrence.sectionName);
+            }
+            included.set(key, entry);
         }
         this.includesByRoot.set(UriUtils.normalize(root), included);
     }
@@ -37,9 +44,18 @@ export class HttpdServiceRegistry extends DefaultServiceRegistry {
         const key = UriUtils.normalize(uri);
         const contexts = new Set<DirectiveContext>();
         for (const included of this.includesByRoot.values()) {
-            included.get(key)?.forEach(context => contexts.add(context));
+            included.get(key)?.contexts.forEach(context => contexts.add(context));
         }
         return [...contexts];
+    }
+
+    getIncludedSectionNames(uri: URI): readonly string[] {
+        const key = UriUtils.normalize(uri);
+        const sections = new Set<string>();
+        for (const included of this.includesByRoot.values()) {
+            included.get(key)?.sections.forEach(section => sections.add(section));
+        }
+        return [...sections];
     }
 
     getRootsForIncluded(uri: URI): readonly URI[] {
@@ -63,4 +79,9 @@ export class HttpdServiceRegistry extends DefaultServiceRegistry {
     override hasServices(uri: URI): boolean {
         return this.isIncluded(uri) || super.hasServices(uri);
     }
+}
+
+interface IncludedContext {
+    contexts: Set<DirectiveContext>;
+    sections: Set<string>;
 }

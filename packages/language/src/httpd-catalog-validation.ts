@@ -15,7 +15,8 @@ export function validateCatalogEntry(
     name: string,
     kind: DirectiveKind,
     argumentCount: number,
-    context: DirectiveContext | readonly DirectiveContext[]
+    context: DirectiveContext | readonly DirectiveContext[],
+    sectionName?: string | readonly string[]
 ): readonly CatalogIssue[] {
     const directives = apache24Catalog.getDirectives(name)
         .filter(directive => directive.kind === kind);
@@ -32,6 +33,24 @@ export function validateCatalogEntry(
             severity: 'error',
             message: `${name} is not valid in ${activeContexts.join(' or ')} context. Allowed: ${allowedContexts.join(', ')}.`
         });
+    } else {
+        const sectionNames = sectionName === undefined
+            ? []
+            : typeof sectionName === 'string'
+                ? [sectionName]
+                : sectionName;
+        if (!directives.some(directive =>
+            !directive.allowedSections
+            || sectionNames.some(section => directive.allowedSections?.includes(section.toLowerCase()))
+        )) {
+            const sections = [...new Set(
+                directives.flatMap(directive => directive.allowedSections ?? [])
+            )];
+            issues.push({
+                severity: 'error',
+                message: `${name} is only valid in ${sections.map(section => `<${section}>`).join(' or ')} sections.`
+            });
+        }
     }
 
     if (!directives.some(directive => acceptsArgumentCount(directive, argumentCount))) {

@@ -11,7 +11,7 @@ import {
     validateArgumentShapes,
     validateCatalogEntry
 } from './httpd-catalog-validation.js';
-import { getNodeContext } from './httpd-context.js';
+import { getNodeContext, getNodeSectionName } from './httpd-context.js';
 import { HttpdIncludeGraph } from './httpd-include-graph.js';
 import type { HttpdServices } from './httpd-module.js';
 import { HttpdRequirementAnalyzer } from './httpd-requirements.js';
@@ -141,11 +141,13 @@ export class HttpdValidator {
     ): void {
         const includedContexts = this.serviceRegistry.getIncludedContexts(AstUtils.getDocument(node).uri);
         const context = includedContexts.length > 0 ? includedContexts : getNodeContext(node);
+        const includedSections = this.serviceRegistry.getIncludedSectionNames(AstUtils.getDocument(node).uri);
         for (const issue of validateCatalogEntry(
             node.name,
             kind,
             node.arguments.length,
-            context
+            context,
+            includedSections.length > 0 ? includedSections : getNodeSectionName(node)
         )) {
             accept(issue.severity, issue.message, {
                 node,
