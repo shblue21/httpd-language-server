@@ -60,12 +60,14 @@ export class HttpdIncludeGraph {
             reportedSyntaxIssues: new Set(),
             syntaxIssues: []
         };
+        const configurationBase = await this.includes.getConfigurationBase(root);
         await this.visitStatements(
             root.parseResult.value.statements,
             root.uri,
             getRootContext(root.uri.path),
             [root.uri],
             undefined,
+            configurationBase,
             state
         );
         return state;
@@ -77,6 +79,7 @@ export class HttpdIncludeGraph {
         context: DirectiveContext,
         stack: readonly URI[],
         rootOrigin: Directive | undefined,
+        configurationBase: URI,
         state: MutableGraph
     ): Promise<void> {
         for (const statement of statements) {
@@ -90,10 +93,19 @@ export class HttpdIncludeGraph {
                     getSectionOwnContext(statement.open.name) ?? context,
                     stack,
                     rootOrigin,
+                    configurationBase,
                     state
                 );
             } else if (isDirective(statement) && isIncludeDirective(statement)) {
-                await this.visitInclude(statement, uri, context, stack, rootOrigin, state);
+                await this.visitInclude(
+                    statement,
+                    uri,
+                    context,
+                    stack,
+                    rootOrigin,
+                    configurationBase,
+                    state
+                );
             }
         }
     }
@@ -104,9 +116,10 @@ export class HttpdIncludeGraph {
         context: DirectiveContext,
         stack: readonly URI[],
         rootOrigin: Directive | undefined,
+        configurationBase: URI,
         state: MutableGraph
     ): Promise<void> {
-        const resolution = await this.includes.resolve({ uri: sourceUri }, directive);
+        const resolution = await this.includes.resolve({ uri: sourceUri }, directive, configurationBase);
         if (resolution.status !== 'resolved') {
             return;
         }
@@ -137,6 +150,7 @@ export class HttpdIncludeGraph {
                 context,
                 [...stack, targetUri],
                 origin,
+                configurationBase,
                 state
             );
         }

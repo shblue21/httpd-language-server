@@ -5,7 +5,7 @@ import {
     type LangiumDocument
 } from 'langium';
 import { minimatch } from 'minimatch';
-import type { Directive } from './generated/ast.js';
+import { isDirective, isHttpdDocument, type Directive } from './generated/ast.js';
 import { HttpdServiceRegistry } from './httpd-service-registry.js';
 
 const MAX_DIRECTORY_DEPTH = 32;
@@ -22,7 +22,11 @@ export class HttpdIncludeResolver {
         private readonly serviceRegistry: HttpdServiceRegistry
     ) {}
 
-    async resolve(document: Pick<LangiumDocument, 'uri'>, directive: Directive): Promise<IncludeResolution> {
+    async resolve(
+        document: Pick<LangiumDocument, 'uri'> & Partial<Pick<LangiumDocument, 'parseResult'>>,
+        directive: Directive,
+        configurationBase?: URI
+    ): Promise<IncludeResolution> {
         if (!isIncludeDirective(directive) || directive.arguments.length !== 1) {
             return { status: 'unknown', targets: [] };
         }
@@ -35,9 +39,10 @@ export class HttpdIncludeResolver {
         const normalized = path.replaceAll('\\', '/');
         const absolute = isAbsoluteConfigurationPath(normalized);
         try {
+            const base = configurationBase ?? await this.getConfigurationBase(document);
             const targets = hasGlob(normalized)
-                ? await this.resolveGlob(document.uri, normalized)
-                : await this.resolvePath(document.uri, normalized);
+                ? await this.resolveGlob(base, normalized)
+                : await this.resolvePath(base, normalized);
             if (targets.length > 0) {
                 targets.forEach(target => this.serviceRegistry.registerIncluded(target));
                 return { status: 'resolved', targets };
@@ -51,8 +56,33 @@ export class HttpdIncludeResolver {
             : { status: 'missing', targets: [] };
     }
 
-    private async resolvePath(documentUri: URI, path: string): Promise<readonly URI[]> {
-        const target = resolveConfigurationPath(documentUri, path);
+    async getConfigurationBase(
+        document: Pick<LangiumDocument, 'uri'> & Partial<Pick<LangiumDocument, 'parseResult'>>
+    ): Promise<URI> {
+        const fallback = UriUtils.dirname(document.uri);
+        const root = document.parseResult?.value;
+        if (!root || !isHttpdDocument(root)) {
+            return fallback;
+        }
+
+        const serverRoot = root.statements.find(statement =>
+            isDirective(statement) && statement.name.toLowerCase() === 'serverroot'
+        );
+        if (!serverRoot || !isDirective(serverRoot) || !serverRoot.arguments[0]) {
+            return fallback;
+        }
+
+        const candidate = resolveConfigurationPath(
+            document.uri,
+            serverRoot.arguments[0].replaceAll('\\', '/')
+        );
+        return await this.fileSystem.exists(candidate) && (await this.fileSystem.stat(candidate)).isDirectory
+            ? candidate
+            : fallback;
+    }
+
+    private async resolvePath(base: URI, path: string): Promise<readonly URI[]> {
+        const target = resolveFromBase(base, path);
         if (!await this.fileSystem.exists(target)) {
             return [];
         }
@@ -67,14 +97,14 @@ export class HttpdIncludeResolver {
         return [];
     }
 
-    private async resolveGlob(documentUri: URI, path: string): Promise<readonly URI[]> {
+    private async resolveGlob(baseUri: URI, path: string): Promise<readonly URI[]> {
         const firstGlob = path.search(/[*?[]/);
         const prefixEnd = path.lastIndexOf('/', firstGlob);
         const basePath = prefixEnd === -1 ? '' : path.slice(0, prefixEnd);
         const pattern = path.slice(prefixEnd + 1);
         const base = basePath
-            ? resolveConfigurationPath(documentUri, basePath)
-            : UriUtils.dirname(documentUri);
+            ? resolveFromBase(baseUri, basePath)
+            : baseUri;
         if (!await this.fileSystem.exists(base) || !(await this.fileSystem.stat(base)).isDirectory) {
             return [];
         }
@@ -125,6 +155,10 @@ export function resolveConfigurationPath(documentUri: URI, path: string): URI {
     return isAbsoluteConfigurationPath(path)
         ? URI.file(path)
         : UriUtils.resolvePath(UriUtils.dirname(documentUri), path);
+}
+
+function resolveFromBase(base: URI, path: string): URI {
+    return isAbsoluteConfigurationPath(path) ? URI.file(path) : UriUtils.resolvePath(base, path);
 }
 
 function hasGlob(path: string): boolean {

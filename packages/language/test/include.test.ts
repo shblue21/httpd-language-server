@@ -64,6 +64,23 @@ describe('HTTPD includes', () => {
         expect(document.diagnostics).toHaveLength(0);
     });
 
+    test('uses a discoverable ServerRoot as the include base', async () => {
+        const root = join(directory, 'server-root');
+        await mkdir(join(root, 'conf'), { recursive: true });
+        await writeFile(join(root, 'conf', 'extra.inc'), 'Listen 8080\n');
+        const parse = parseHelper<HttpdDocument>(services.Httpd);
+        const document = await parse(`ServerRoot "${root}"\nInclude conf/extra.inc\n`, {
+            documentUri: URI.file(join(directory, 'server-root.httpd')).toString(),
+            validation: true
+        });
+        const links = await services.Httpd.lsp.DefinitionProvider?.getDefinition(document, {
+            textDocument: { uri: document.uri.toString() },
+            position: { line: 1, character: 12 }
+        });
+
+        expect(links?.[0].targetUri).toBe(URI.file(join(root, 'conf', 'extra.inc')).toString());
+    });
+
     test('reports missing required includes but not missing optional includes', async () => {
         const parse = parseHelper<HttpdDocument>(services.Httpd);
         const document = await parse('Include missing.inc\nIncludeOptional optional.inc\n', {
