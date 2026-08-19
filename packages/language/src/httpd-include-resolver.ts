@@ -121,7 +121,7 @@ function isAbsoluteConfigurationPath(path: string): boolean {
     return path.startsWith('/') || /^[A-Za-z]:[\\/]/.test(path);
 }
 
-function resolveConfigurationPath(documentUri: URI, path: string): URI {
+export function resolveConfigurationPath(documentUri: URI, path: string): URI {
     return isAbsoluteConfigurationPath(path)
         ? URI.file(path)
         : UriUtils.resolvePath(UriUtils.dirname(documentUri), path);

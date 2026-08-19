@@ -19,6 +19,7 @@ describe('HTTPD zero-config requirements', () => {
     test('derives loaded modules, definitions, and minimum version from the document', async () => {
         const document = await parse(`
 LoadModule proxy_module modules/mod_proxy.so
+ServerRoot "/srv/httpd"
 Define STAGE production
 ProxyPass /api http://backend.example
 CacheSocache shmcb
@@ -28,6 +29,8 @@ CacheSocache shmcb
         expect(requirements.loadedModules).toContain('mod_proxy');
         expect(requirements.defines.get('STAGE')).toBe('production');
         expect(requirements.minimumVersion).toBe('2.4.5');
+        expect(requirements.serverRoot).toBe('/srv/httpd');
+        expect(requirements.targetPlatform).toBe('unknown');
         expect(requirements.modules).toEqual(expect.arrayContaining([
             { providers: ['mod_proxy'], state: 'loaded' },
             { providers: ['mod_cache_socache'], state: 'unknown' }

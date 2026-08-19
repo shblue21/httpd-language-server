@@ -16,6 +16,8 @@ export interface HttpdRequirements {
     loadedModules: ReadonlySet<string>;
     minimumVersion: string;
     modules: readonly ModuleRequirement[];
+    serverRoot?: string;
+    targetPlatform: 'unknown';
 }
 
 export class HttpdRequirementAnalyzer {
@@ -35,7 +37,9 @@ export class HttpdRequirementAnalyzer {
             defines: state.defines,
             loadedModules: state.loadedModules,
             minimumVersion: state.minimumVersion,
-            modules: [...state.modules.values()]
+            modules: [...state.modules.values()],
+            serverRoot: state.serverRoot,
+            targetPlatform: 'unknown'
         };
     }
 
@@ -128,6 +132,9 @@ export class HttpdRequirementAnalyzer {
                 }
                 break;
             }
+            case 'serverroot':
+                state.serverRoot = args[0];
+                break;
         }
     }
 
@@ -163,6 +170,7 @@ interface MutableRequirements {
     loadedModules: Set<string>;
     minimumVersion: string;
     modules: Map<string, ModuleRequirement>;
+    serverRoot?: string;
 }
 
 function isConditionalSection(name: string): boolean {
