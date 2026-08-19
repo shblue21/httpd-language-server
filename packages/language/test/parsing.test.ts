@@ -37,6 +37,7 @@ ServerName example.test
         const document = await parse(String.raw`SetEnv EXAMPLE foo\
 bar
 Header set X-Test "literal\n"
+SetEnv QUOTED foo"bar"
 `);
 
         expect(document.parseResult.parserErrors).toHaveLength(0);
@@ -44,6 +45,7 @@ Header set X-Test "literal\n"
         const directives = document.parseResult.value.statements.filter(isDirective);
         expect(directives[0].arguments).toEqual(['EXAMPLE', 'foobar']);
         expect(directives[1].arguments).toEqual(['set', 'X-Test', String.raw`literal\n`]);
+        expect(directives[2].arguments).toEqual(['QUOTED', 'foo"bar"']);
     });
 
     test('continues comment lines without consuming following directives', async () => {
@@ -56,5 +58,14 @@ Listen 80
         expect(document.parseResult.lexerErrors).toHaveLength(0);
         const directives = document.parseResult.value.statements.filter(isDirective);
         expect(directives.map(directive => directive.name)).toEqual(['Listen']);
+    });
+
+    test('preserves inline comments without losing later directives', async () => {
+        const document = await parse('ServerName example.test # not inline\nListen 80\n');
+
+        expect(document.parseResult.parserErrors).toHaveLength(0);
+        const directives = document.parseResult.value.statements.filter(isDirective);
+        expect(directives.map(directive => directive.name)).toEqual(['ServerName', 'Listen']);
+        expect(directives[0].inlineComment).toBe('# not inline');
     });
 });

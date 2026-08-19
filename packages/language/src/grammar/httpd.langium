@@ -6,7 +6,10 @@ entry HttpdDocument:
     (statements+=Statement | orphanClosings+=SectionClose)?;
 
 Statement:
-    Section | Directive;
+    Section | Directive | Comment;
+
+Comment:
+    text=COMMENT;
 
 Section:
     open=SectionOpen EOL+
@@ -20,14 +23,14 @@ SectionClose:
     '</' name=WORD (terminated?='>')?;
 
 Directive:
-    name=WORD arguments+=Argument*;
+    name=WORD arguments+=Argument* (inlineComment=COMMENT)?;
 
 Argument returns string:
     STRING | WORD;
 
 hidden terminal WS: /[ \t\f]+/;
 hidden terminal LINE_CONTINUATION: /\\\r?\n/;
-hidden terminal COMMENT: /#(?:\\\r?\n|[^\r\n])*/;
 terminal EOL: /\r?\n/;
 terminal STRING: /"(?:\\\r?\n|\\.|[^"\\\r\n])*"|'(?:\\\r?\n|\\.|[^'\\\r\n])*'/;
-terminal WORD: /(?:\\\r?\n|[^\s<>'\"])+/;
+terminal WORD: /(?:\\\r?\n|[^\s<>#'\"])(?:\\\r?\n|[^\s<>])*/;
+terminal COMMENT: /#(?:\\\r?\n|[^\r\n])*/;

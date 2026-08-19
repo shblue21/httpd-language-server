@@ -93,6 +93,12 @@ export class HttpdValidator {
 
     checkDirective(directive: Directive, accept: ValidationAcceptor): void {
         this.checkCatalogEntry(directive, 'directive', accept);
+        if (directive.inlineComment) {
+            accept('error', 'Inline comments are not allowed; move the comment to its own line.', {
+                node: directive,
+                property: 'inlineComment'
+            });
+        }
     }
 
     async checkIncludeTarget(directive: Directive, accept: ValidationAcceptor): Promise<void> {

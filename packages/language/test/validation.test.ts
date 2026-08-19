@@ -21,12 +21,13 @@ describe('HTTPD validation', () => {
     });
 
     test('validates directives through the official catalog without stopping on unknown names', async () => {
-        const document = await parse('AllowOverride All\nInclude\nVendorThing value\nListen 80\n');
+        const document = await parse('AllowOverride All\nInclude\nVendorThing value # inline\nListen 80\n');
         const messages = document.diagnostics?.map(diagnostic => diagnostic.message);
 
         expect(messages).toContain('AllowOverride is not valid in server context. Allowed: directory.');
         expect(messages).toContain('Include expects 1 argument; received 0.');
         expect(messages).toContain('Unknown HTTPD directive "VendorThing".');
+        expect(messages).toContain('Inline comments are not allowed; move the comment to its own line.');
         expect(document.parseResult.value.statements).toHaveLength(4);
     });
 
