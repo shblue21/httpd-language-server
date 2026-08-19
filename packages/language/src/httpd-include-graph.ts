@@ -6,6 +6,7 @@ import {
     type URI
 } from 'langium';
 import type { DirectiveContext } from './catalog/types.js';
+import { validateCatalogEntry } from './httpd-catalog-validation.js';
 import { getRootContext, getSectionOwnContext } from './httpd-context.js';
 import { HttpdIncludeResolver, isIncludeDirective } from './httpd-include-resolver.js';
 import {
@@ -37,10 +38,18 @@ export interface IncludedSyntaxIssue {
     uri: URI;
 }
 
+export interface IncludedSemanticIssue {
+    message: string;
+    origin: Directive;
+    severity: 'error' | 'warning';
+    uri: URI;
+}
+
 export interface IncludeGraph {
     cycles: readonly IncludeCycle[];
     documents: ReadonlyMap<string, ParseResult<HttpdDocument>>;
     occurrences: readonly IncludeOccurrence[];
+    semanticIssues: readonly IncludedSemanticIssue[];
     syntaxIssues: readonly IncludedSyntaxIssue[];
 }
 
@@ -58,6 +67,7 @@ export class HttpdIncludeGraph {
             occurrences: [],
             order: 0,
             reportedSyntaxIssues: new Set(),
+            semanticIssues: [],
             syntaxIssues: []
         };
         const configurationBase = await this.includes.getConfigurationBase(root);
@@ -87,6 +97,15 @@ export class HttpdIncludeGraph {
                 return;
             }
             if (isSection(statement)) {
+                this.recordSemanticIssues(
+                    statement.open.name,
+                    'section',
+                    statement.open.arguments.length,
+                    context,
+                    uri,
+                    rootOrigin,
+                    state
+                );
                 await this.visitStatements(
                     statement.statements,
                     uri,
@@ -96,16 +115,27 @@ export class HttpdIncludeGraph {
                     configurationBase,
                     state
                 );
-            } else if (isDirective(statement) && isIncludeDirective(statement)) {
-                await this.visitInclude(
-                    statement,
-                    uri,
+            } else if (isDirective(statement)) {
+                this.recordSemanticIssues(
+                    statement.name,
+                    'directive',
+                    statement.arguments.length,
                     context,
-                    stack,
+                    uri,
                     rootOrigin,
-                    configurationBase,
                     state
                 );
+                if (isIncludeDirective(statement)) {
+                    await this.visitInclude(
+                        statement,
+                        uri,
+                        context,
+                        stack,
+                        rootOrigin,
+                        configurationBase,
+                        state
+                    );
+                }
             }
         }
     }
@@ -185,6 +215,28 @@ export class HttpdIncludeGraph {
         }
         return result;
     }
+
+    private recordSemanticIssues(
+        name: string,
+        kind: 'directive' | 'section',
+        argumentCount: number,
+        context: DirectiveContext,
+        uri: URI,
+        rootOrigin: Directive | undefined,
+        state: MutableGraph
+    ): void {
+        if (!rootOrigin) {
+            return;
+        }
+        for (const issue of validateCatalogEntry(name, kind, argumentCount, context)) {
+            state.semanticIssues.push({
+                message: issue.message,
+                origin: rootOrigin,
+                severity: issue.severity,
+                uri
+            });
+        }
+    }
 }
 
 interface MutableGraph {
@@ -193,5 +245,6 @@ interface MutableGraph {
     occurrences: IncludeOccurrence[];
     order: number;
     reportedSyntaxIssues: Set<string>;
+    semanticIssues: IncludedSemanticIssue[];
     syntaxIssues: IncludedSyntaxIssue[];
 }

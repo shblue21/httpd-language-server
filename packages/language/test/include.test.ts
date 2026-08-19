@@ -144,6 +144,9 @@ Include broken.inc
             typeof diagnostic.message === 'string'
             && diagnostic.message.startsWith('Included file "broken.inc" has syntax errors:')
         )).toBe(true);
+        expect(document.diagnostics?.map(diagnostic => diagnostic.message)).toContain(
+            'Included file "shared.inc": Require is not valid in virtual-host context. Allowed: directory, htaccess.'
+        );
         expect(graph.documents.has(URI.file(join(directory, 'shared.inc')).toString())).toBe(true);
     });
 });

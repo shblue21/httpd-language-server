@@ -6,8 +6,8 @@ import {
     type Section,
     type SectionOpen
 } from './generated/ast.js';
-import { apache24Catalog } from './catalog/apache-2.4.js';
-import type { DirectiveKind, DirectiveSpec } from './catalog/types.js';
+import type { DirectiveKind } from './catalog/types.js';
+import { validateCatalogEntry } from './httpd-catalog-validation.js';
 import { getNodeContext } from './httpd-context.js';
 import { HttpdIncludeGraph } from './httpd-include-graph.js';
 import { HttpdIncludeResolver, isIncludeDirective } from './httpd-include-resolver.js';
@@ -52,6 +52,13 @@ export class HttpdValidator {
         }
         for (const issue of graph.syntaxIssues) {
             accept('error', `Included file "${issue.uri.path.split('/').at(-1)}" has syntax errors: ${issue.message}`, {
+                node: issue.origin,
+                property: 'arguments',
+                index: 0
+            });
+        }
+        for (const issue of graph.semanticIssues) {
+            accept(issue.severity, `Included file "${issue.uri.path.split('/').at(-1)}": ${issue.message}`, {
                 node: issue.origin,
                 property: 'arguments',
                 index: 0
@@ -112,47 +119,17 @@ export class HttpdValidator {
         kind: DirectiveKind,
         accept: ValidationAcceptor
     ): void {
-        const directives = apache24Catalog.getDirectives(node.name)
-            .filter(directive => directive.kind === kind);
-        if (directives.length === 0) {
-            accept('warning', `Unknown HTTPD ${kind} "${node.name}".`, {
-                node,
-                property: 'name'
-            });
-            return;
-        }
-
         const context = getNodeContext(node);
-        if (!directives.some(directive => directive.contexts.includes(context))) {
-            const contexts = [...new Set(directives.flatMap(directive => directive.contexts))];
-            accept('error', `${node.name} is not valid in ${context} context. Allowed: ${contexts.join(', ')}.`, {
+        for (const issue of validateCatalogEntry(
+            node.name,
+            kind,
+            node.arguments.length,
+            context
+        )) {
+            accept(issue.severity, issue.message, {
                 node,
                 property: 'name'
             });
         }
-
-        if (!directives.some(directive => acceptsArgumentCount(directive, node.arguments.length))) {
-            const expected = directives.map(directive => formatArgumentCount(directive)).join(' or ');
-            accept('error', `${node.name} expects ${expected}; received ${node.arguments.length}.`, {
-                node,
-                property: 'name'
-            });
-        }
     }
-}
-
-function acceptsArgumentCount(directive: DirectiveSpec, count: number): boolean {
-    return !directive.arguments
-        || (count >= directive.arguments.min && (directive.arguments.max === undefined || count <= directive.arguments.max));
-}
-
-function formatArgumentCount(directive: DirectiveSpec): string {
-    const { min, max } = directive.arguments!;
-    if (max === undefined) {
-        return `at least ${min} arguments`;
-    }
-    if (min === max) {
-        return `${min} argument${min === 1 ? '' : 's'}`;
-    }
-    return `${min}-${max} arguments`;
 }
