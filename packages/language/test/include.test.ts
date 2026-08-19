@@ -69,7 +69,7 @@ describe('HTTPD includes', () => {
         await mkdir(join(root, 'conf'), { recursive: true });
         await writeFile(join(root, 'conf', 'extra.inc'), 'Listen 8080\n');
         const parse = parseHelper<HttpdDocument>(services.Httpd);
-        const document = await parse(`ServerRoot "${root}"\nInclude conf/extra.inc\n`, {
+        const document = await parse('ServerRoot server-root\nInclude conf/extra.inc\n', {
             documentUri: URI.file(join(directory, 'server-root.httpd')).toString(),
             validation: true
         });
@@ -79,6 +79,22 @@ describe('HTTPD includes', () => {
         });
 
         expect(links?.[0].targetUri).toBe(URI.file(join(root, 'conf', 'extra.inc')).toString());
+    });
+
+    test('does not read absolute or escaping target paths from the host', async () => {
+        const parse = parseHelper<HttpdDocument>(services.Httpd);
+        const absolute = join(directory, 'fragment.inc');
+        const document = await parse(`Include "${absolute}"\nInclude ../outside.conf\n`, {
+            documentUri: URI.file(join(directory, 'safe.httpd')).toString(),
+            validation: true
+        });
+
+        const absoluteLinks = await services.Httpd.lsp.DefinitionProvider?.getDefinition(document, {
+            textDocument: { uri: document.uri.toString() },
+            position: { line: 0, character: 12 }
+        });
+        expect(absoluteLinks).toBeUndefined();
+        expect(document.diagnostics).toHaveLength(0);
     });
 
     test('substitutes definitions in include paths without configuration prompts', async () => {

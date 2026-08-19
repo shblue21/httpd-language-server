@@ -40,8 +40,14 @@ export class HttpdIncludeResolver {
 
         const normalized = path.replaceAll('\\', '/');
         const absolute = isAbsoluteConfigurationPath(normalized);
+        if (absolute) {
+            return { status: 'unknown', targets: [] };
+        }
         try {
             const base = configurationBase ?? await this.getConfigurationBase(document);
+            if (pathEscapesBase(normalized)) {
+                return { status: 'unknown', targets: [] };
+            }
             const targets = hasGlob(normalized)
                 ? await this.resolveGlob(base, normalized)
                 : await this.resolvePath(base, normalized);
@@ -75,7 +81,7 @@ export class HttpdIncludeResolver {
         }
 
         const expanded = substituteVariables(serverRoot.arguments[0], this.getDefinitions(document));
-        if (expanded === undefined) {
+        if (expanded === undefined || isAbsoluteConfigurationPath(expanded)) {
             return fallback;
         }
         const candidate = resolveConfigurationPath(
@@ -191,6 +197,24 @@ function resolveFromBase(base: URI, path: string): URI {
 
 function hasGlob(path: string): boolean {
     return /[*?[]/.test(path);
+}
+
+function pathEscapesBase(path: string): boolean {
+    let depth = 0;
+    for (const segment of path.split('/')) {
+        if (!segment || segment === '.') {
+            continue;
+        }
+        if (segment === '..') {
+            if (depth === 0) {
+                return true;
+            }
+            depth--;
+        } else {
+            depth++;
+        }
+    }
+    return false;
 }
 
 function substituteVariables(
