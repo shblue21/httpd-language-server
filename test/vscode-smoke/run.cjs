@@ -62,10 +62,29 @@ exports.run = async function run() {
         : definitions[0].uri;
     assert.equal(path.basename(target.fsPath), 'site.inc');
 
-    await waitFor(() => vscode.workspace.textDocuments.some(document =>
+    const includedDocument = await waitFor(() => vscode.workspace.textDocuments.find(document =>
         document.uri.toString() === target.toString() && document.languageId === 'httpd'
+    ));
+    await replaceDocument(includedDocument, '</Directory>\n');
+    await waitFor(() => vscode.languages.getDiagnostics(rootUri).some(diagnostic =>
+        diagnostic.message === 'Included file "site.inc": Closing section </Directory> has no matching opening section.'
     ) ? true : undefined);
+
+    await replaceDocument(includedDocument, 'Listen 8080\n');
+    await waitFor(() => vscode.languages.getDiagnostics(rootUri).some(diagnostic =>
+        diagnostic.message === 'Included file "site.inc": Closing section </Directory> has no matching opening section.'
+    ) ? undefined : true);
 };
+
+async function replaceDocument(document, text) {
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(
+        document.uri,
+        new vscode.Range(new vscode.Position(0, 0), document.positionAt(document.getText().length)),
+        text
+    );
+    assert.equal(await vscode.workspace.applyEdit(edit), true);
+}
 
 async function waitFor(probe, timeout = 15_000) {
     const deadline = Date.now() + timeout;

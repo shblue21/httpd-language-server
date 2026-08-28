@@ -1,4 +1,7 @@
-import { createHttpdServices } from '@httpd-language-server/language';
+import {
+    createHttpdServices,
+    type HttpdSharedServices
+} from '@httpd-language-server/language';
 import { URI } from 'langium';
 import { startLanguageServer } from 'langium/lsp';
 import { NodeFileSystem } from 'langium/node';
@@ -7,6 +10,51 @@ import {
     ProposedFeatures,
     type Connection
 } from 'vscode-languageserver/node';
+
+const ROOT_UPDATE_DELAY = 50;
+
+export function registerIncludedRootRevalidation(
+    shared: HttpdSharedServices,
+    delay = ROOT_UPDATE_DELAY
+): () => void {
+    const pendingRootUpdates = new Map<string, NodeJS.Timeout>();
+    let disposed = false;
+    const contentChange = shared.workspace.TextDocuments.onDidChangeContent(({ document }) => {
+        if (disposed) {
+            return;
+        }
+        const changed = URI.parse(document.uri);
+        for (const root of shared.ServiceRegistry.getRootsForIncluded(changed)) {
+            const key = root.toString();
+            if (key === changed.toString()) {
+                continue;
+            }
+            clearTimeout(pendingRootUpdates.get(key));
+            pendingRootUpdates.set(key, setTimeout(() => {
+                pendingRootUpdates.delete(key);
+                if (disposed) {
+                    return;
+                }
+                void shared.workspace.WorkspaceManager.ready
+                    .then(() => disposed
+                        ? undefined
+                        : shared.workspace.WorkspaceLock.write(cancelToken =>
+                            shared.workspace.DocumentBuilder.update([root], [], cancelToken)
+                        ))
+                    .catch(error => {
+                        console.error(`Failed to revalidate HTTPD root ${key}.`, error);
+                    });
+            }, delay));
+        }
+    });
+
+    return () => {
+        disposed = true;
+        contentChange.dispose();
+        pendingRootUpdates.forEach(timeout => clearTimeout(timeout));
+        pendingRootUpdates.clear();
+    };
+}
 
 export function startHttpdLanguageServer(connection?: Connection): void {
     const activeConnection = connection ?? createConnection(ProposedFeatures.all);
@@ -18,22 +66,13 @@ export function startHttpdLanguageServer(connection?: Connection): void {
         'httpd/isIncludedDocument',
         ({ uri }: { uri: string }) => shared.ServiceRegistry.isIncluded(URI.parse(uri))
     );
-    shared.ServiceRegistry.onDidChangeIncluded(uris => {
+    const disposeIncludedListener = shared.ServiceRegistry.onDidChangeIncluded(uris => {
         void activeConnection.sendNotification('httpd/includedDocumentsChanged', { uris });
     });
-    const pendingRootUpdates = new Map<string, NodeJS.Timeout>();
-    activeConnection.onDidChangeTextDocument(({ textDocument }) => {
-        const changed = URI.parse(textDocument.uri);
-        for (const root of shared.ServiceRegistry.getRootsForIncluded(changed)) {
-            const key = root.toString();
-            clearTimeout(pendingRootUpdates.get(key));
-            pendingRootUpdates.set(key, setTimeout(() => {
-                pendingRootUpdates.delete(key);
-                void shared.workspace.DocumentBuilder.update([root], []).catch(error => {
-                    console.error(`Failed to revalidate HTTPD root ${key}.`, error);
-                });
-            }, 50));
-        }
+    const disposeRootRevalidation = registerIncludedRootRevalidation(shared);
+    activeConnection.onShutdown(() => {
+        disposeRootRevalidation();
+        disposeIncludedListener();
     });
     startLanguageServer(shared);
 }

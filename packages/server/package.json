@@ -19,7 +19,8 @@
     "httpd-language-server": "./bin/httpd-language-server.js"
   },
   "scripts": {
-    "clean": "node -e \"require('node:fs').rmSync('out', { recursive: true, force: true })\""
+    "clean": "node -e \"require('node:fs').rmSync('out', { recursive: true, force: true })\"",
+    "test": "tsc -b tsconfig.json && node --test test/server.test.mjs"
   },
   "dependencies": {
     "@httpd-language-server/language": "workspace:*",
