@@ -1,8 +1,19 @@
-import { CstUtils, GrammarUtils, type LangiumDocument } from 'langium';
+import {
+    CstUtils,
+    GrammarUtils,
+    UriUtils,
+    type LangiumDocument,
+    type URI
+} from 'langium';
 import type { DefinitionProvider } from 'langium/lsp';
-import type { DefinitionParams, LocationLink, Range } from 'vscode-languageserver';
-import { isDirective, type HttpdDocument } from './generated/ast.js';
-import { HttpdIncludeGraph } from './httpd-include-graph.js';
+import type {
+    CancellationToken,
+    DefinitionParams,
+    LocationLink,
+    Range
+} from 'vscode-languageserver';
+import { isDirective, type Directive, type HttpdDocument } from './generated/ast.js';
+import { HttpdIncludeGraph, type IncludeOccurrence } from './httpd-include-graph.js';
 import { isIncludeDirective } from './httpd-include-resolver.js';
 
 const FILE_START: Range = {
@@ -15,7 +26,8 @@ export class HttpdDefinitionProvider implements DefinitionProvider {
 
     async getDefinition(
         document: LangiumDocument,
-        params: DefinitionParams
+        params: DefinitionParams,
+        cancelToken?: CancellationToken
     ): Promise<LocationLink[] | undefined> {
         const root = document.parseResult.value.$cstNode;
         if (!root) {
@@ -33,17 +45,44 @@ export class HttpdDefinitionProvider implements DefinitionProvider {
             return undefined;
         }
 
-        const graph = await this.includes.build(document as LangiumDocument<HttpdDocument>);
-        const targets = graph.occurrences
-            .filter(occurrence => occurrence.source === node)
-            .map(occurrence => occurrence.targetUri);
-        return targets.length === 0 ? undefined : targets.map(target => ({
+        const analyses = await this.includes.analyzeConfigurations(
+            document as LangiumDocument<HttpdDocument>,
+            cancelToken
+        );
+        if (cancelToken?.isCancellationRequested || !this.includes.isCurrentDocument(document)) {
+            return undefined;
+        }
+        const targets = new Map<string, URI>();
+        for (const analysis of analyses) {
+            for (const occurrence of analysis.graph.occurrences) {
+                if (!matchesDirective(occurrence, document, node)) {
+                    continue;
+                }
+                const key = UriUtils.normalize(occurrence.targetUri);
+                if (!targets.has(key)) {
+                    targets.set(key, occurrence.targetUri);
+                }
+            }
+        }
+        return targets.size === 0 ? undefined : [...targets.values()].map(target => ({
             originSelectionRange: argument.range,
             targetUri: target.toString(),
             targetRange: FILE_START,
             targetSelectionRange: FILE_START
         }));
     }
+}
+
+function matchesDirective(
+    occurrence: IncludeOccurrence,
+    document: LangiumDocument,
+    node: Directive
+): boolean {
+    const occurrenceNode = occurrence.source.$cstNode;
+    const documentNode = node?.$cstNode;
+    return UriUtils.normalize(occurrence.sourceUri) === UriUtils.normalize(document.uri)
+        && occurrenceNode?.offset === documentNode?.offset
+        && occurrenceNode?.length === documentNode?.length;
 }
 
 function containsOffset(node: { offset: number; length: number }, offset: number): boolean {

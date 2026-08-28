@@ -319,4 +319,183 @@ Include mismatched.inc
         );
         expect(graph.documents.has(URI.file(join(directory, 'shared.inc')).toString())).toBe(true);
     });
+
+    test('uses the including root for fragment hover without publishing a fake root', async () => {
+        const fragmentPath = join(directory, 'context-fragment.inc');
+        const fragmentText = 'Header set X-Context enabled\n';
+        await writeFile(fragmentPath, fragmentText);
+        const parse = parseHelper<HttpdDocument>(services.Httpd);
+        const root = await parse(`
+LoadModule headers_module modules/mod_headers.so
+<Directory "/srv/www">
+    Include context-fragment.inc
+</Directory>
+`, {
+            documentUri: URI.file(join(directory, 'context-root.httpd')).toString(),
+            validation: true
+        });
+        const fragment = await parse(fragmentText, {
+            documentUri: URI.file(fragmentPath).toString(),
+            validation: true
+        });
+
+        expect(services.shared.ServiceRegistry.hasRoot(fragment.uri)).toBe(false);
+        const rootsBefore = services.shared.ServiceRegistry.getRootsForIncluded(fragment.uri)
+            .map(uri => uri.toString());
+        let notifications = 0;
+        const dispose = services.shared.ServiceRegistry.onDidChangeIncluded(() => notifications++);
+        const hover = await services.Httpd.lsp.HoverProvider?.getHoverContent(fragment, {
+            textDocument: { uri: fragment.uri.toString() },
+            position: { line: 0, character: 2 }
+        });
+        dispose();
+
+        const hoverText = (hover?.contents as { value?: string } | undefined)?.value ?? '';
+        expect(hoverText).toContain('**Module state:** loaded (required)');
+        expect(hoverText).toContain('**Included as:** directory');
+        expect(notifications).toBe(0);
+        expect(services.shared.ServiceRegistry.hasRoot(fragment.uri)).toBe(false);
+        expect(services.shared.ServiceRegistry.getRootsForIncluded(fragment.uri)
+            .map(uri => uri.toString())).toEqual(rootsBefore);
+        expect(rootsBefore).toEqual([root.uri.toString()]);
+    });
+
+    test('resolves nested fragment definitions from inherited root facts without stale entries', async () => {
+        const basePath = join(directory, 'definition-base');
+        const fragmentPath = join(basePath, 'fragments', 'definition.inc');
+        const childPath = join(basePath, 'nested', 'child.inc');
+        await mkdir(join(basePath, 'fragments'), { recursive: true });
+        await mkdir(join(basePath, 'nested'), { recursive: true });
+        await writeFile(fragmentPath, 'Include ${SITE}/child.inc\n');
+        await writeFile(childPath, 'Listen 8080\n');
+
+        const parse = parseHelper<HttpdDocument>(services.Httpd);
+        const root = await parse(`
+ServerRoot definition-base
+Define SITE nested
+Include fragments/definition.inc
+`, {
+            documentUri: URI.file(join(directory, 'definition-root.httpd')).toString(),
+            validation: true
+        });
+        const fragment = await parse('Include ${SITE}/child.inc\n', {
+            documentUri: URI.file(fragmentPath).toString(),
+            validation: true
+        });
+
+        let notifications = 0;
+        const dispose = services.shared.ServiceRegistry.onDidChangeIncluded(() => notifications++);
+        const links = await services.Httpd.lsp.DefinitionProvider?.getDefinition(fragment, {
+            textDocument: { uri: fragment.uri.toString() },
+            position: { line: 0, character: 12 }
+        });
+        dispose();
+
+        expect(links?.map(link => link.targetUri)).toEqual([URI.file(childPath).toString()]);
+        expect(notifications).toBe(0);
+        expect(services.shared.ServiceRegistry.hasRoot(fragment.uri)).toBe(false);
+        expect(services.shared.ServiceRegistry.isIncluded(URI.file(childPath))).toBe(true);
+
+        services.shared.ServiceRegistry.replaceIncluded(root.uri, []);
+        expect(services.shared.ServiceRegistry.isIncluded(fragment.uri)).toBe(false);
+        expect(services.shared.ServiceRegistry.isIncluded(URI.file(childPath))).toBe(false);
+    });
+
+    test('preserves multi-root and multi-occurrence ambiguity in fragment queries', async () => {
+        const fragmentPath = join(directory, 'multi-fragment.inc');
+        const fragmentText = 'Header set X-Multi enabled\nInclude ${SITE}/child.inc\n';
+        await writeFile(fragmentPath, fragmentText);
+        await mkdir(join(directory, 'one'), { recursive: true });
+        await mkdir(join(directory, 'two'), { recursive: true });
+        await writeFile(join(directory, 'one', 'child.inc'), 'Listen 8081\n');
+        await writeFile(join(directory, 'two', 'child.inc'), 'Listen 8082\n');
+
+        const parse = parseHelper<HttpdDocument>(services.Httpd);
+        await parse(`
+LoadModule headers_module modules/mod_headers.so
+Define SITE one
+<Directory "/srv/one">
+    Include multi-fragment.inc
+</Directory>
+<VirtualHost *:80>
+    Include multi-fragment.inc
+</VirtualHost>
+`, {
+            documentUri: URI.file(join(directory, 'multi-a.httpd')).toString(),
+            validation: true
+        });
+        await parse(`
+Define SITE two
+Include multi-fragment.inc
+`, {
+            documentUri: URI.file(join(directory, 'multi-b.httpd')).toString(),
+            validation: true
+        });
+        const fragment = await parse(fragmentText, {
+            documentUri: URI.file(fragmentPath).toString(),
+            validation: true
+        });
+
+        let notifications = 0;
+        const dispose = services.shared.ServiceRegistry.onDidChangeIncluded(() => notifications++);
+        const hover = await services.Httpd.lsp.HoverProvider?.getHoverContent(fragment, {
+            textDocument: { uri: fragment.uri.toString() },
+            position: { line: 0, character: 2 }
+        });
+        const links = await services.Httpd.lsp.DefinitionProvider?.getDefinition(fragment, {
+            textDocument: { uri: fragment.uri.toString() },
+            position: { line: 1, character: 12 }
+        });
+        dispose();
+
+        const hoverText = (hover?.contents as { value?: string } | undefined)?.value ?? '';
+        expect(hoverText).toContain('**Module state:** varies by including configuration');
+        expect(hoverText).toContain('**Included as:** directory, server, virtual-host');
+        expect(links?.map(link => URI.parse(link.targetUri).path.split('/').slice(-2).join('/')))
+            .toEqual(['one/child.inc', 'two/child.inc']);
+        expect(notifications).toBe(0);
+        expect(services.shared.ServiceRegistry.hasRoot(fragment.uri)).toBe(false);
+    });
+
+    test('demotes a fragment-first inferred root when an including root is discovered', async () => {
+        const fragmentPath = join(directory, 'fragment-first.httpd');
+        const childPath = join(directory, 'fragment-first-child.inc');
+        const fragmentText = 'Header set X-First enabled\nInclude fragment-first-child.inc\n';
+        await writeFile(fragmentPath, fragmentText);
+        await writeFile(childPath, 'Listen 8090\n');
+
+        const parse = parseHelper<HttpdDocument>(services.Httpd);
+        const fragment = await parse(fragmentText, {
+            documentUri: URI.file(fragmentPath).toString(),
+            validation: true
+        });
+        expect(services.shared.ServiceRegistry.hasRoot(fragment.uri)).toBe(true);
+        expect(services.shared.ServiceRegistry.getRootsForIncluded(URI.file(childPath))
+            .map(uri => uri.toString())).toEqual([fragment.uri.toString()]);
+
+        const root = await parse(`
+LoadModule headers_module modules/mod_headers.so
+Include fragment-first.httpd
+`, {
+            documentUri: URI.file(join(directory, 'fragment-first-root.httpd')).toString(),
+            validation: true
+        });
+        expect(services.shared.ServiceRegistry.hasRoot(fragment.uri)).toBe(false);
+        expect(services.shared.ServiceRegistry.getRootsForIncluded(fragment.uri)
+            .map(uri => uri.toString())).toEqual([root.uri.toString()]);
+        expect(services.shared.ServiceRegistry.getRootsForIncluded(URI.file(childPath))
+            .map(uri => uri.toString())).toEqual([root.uri.toString()]);
+
+        const hover = await services.Httpd.lsp.HoverProvider?.getHoverContent(fragment, {
+            textDocument: { uri: fragment.uri.toString() },
+            position: { line: 0, character: 2 }
+        });
+        const hoverText = (hover?.contents as { value?: string } | undefined)?.value ?? '';
+        expect(hoverText).toContain('**Module state:** loaded (required)');
+        expect(hoverText).not.toContain('varies by including configuration');
+
+        services.shared.ServiceRegistry.replaceIncluded(root.uri, []);
+        expect(services.shared.ServiceRegistry.isIncluded(fragment.uri)).toBe(false);
+        expect(services.shared.ServiceRegistry.isIncluded(URI.file(childPath))).toBe(false);
+    });
 });

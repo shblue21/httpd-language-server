@@ -31,6 +31,30 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         clientOptions
     );
 
+    const promotedDocuments = new Map<string, string>();
+    let includedUpdate = Promise.resolve();
+    const updateIncludedDocument = async (
+        document: vscode.TextDocument,
+        included: boolean
+    ): Promise<void> => {
+        if (document.uri.scheme !== 'file') {
+            return;
+        }
+        const key = document.uri.toString();
+        if (included) {
+            if (document.languageId !== 'httpd') {
+                promotedDocuments.set(key, document.languageId);
+                await vscode.languages.setTextDocumentLanguage(document, 'httpd');
+            }
+            return;
+        }
+
+        const previousLanguage = promotedDocuments.get(key);
+        promotedDocuments.delete(key);
+        if (previousLanguage && document.languageId === 'httpd') {
+            await vscode.languages.setTextDocumentLanguage(document, previousLanguage);
+        }
+    };
     const enableIncludedDocument = async (document: vscode.TextDocument): Promise<void> => {
         if (document.languageId === 'httpd' || document.uri.scheme !== 'file') {
             return;
@@ -38,19 +62,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         const included = await client?.sendRequest<boolean>('httpd/isIncludedDocument', {
             uri: document.uri.toString()
         });
-        if (included) {
-            await vscode.languages.setTextDocumentLanguage(document, 'httpd');
-        }
+        await updateIncludedDocument(document, included === true);
     };
     client.onNotification(
         'httpd/includedDocumentsChanged',
         ({ uris }: { uris: readonly string[] }) => {
             const included = new Set(uris);
-            for (const document of vscode.workspace.textDocuments) {
-                if (document.languageId !== 'httpd' && included.has(document.uri.toString())) {
-                    void vscode.languages.setTextDocumentLanguage(document, 'httpd');
-                }
-            }
+            includedUpdate = includedUpdate
+                .then(() => Promise.all(vscode.workspace.textDocuments.map(document =>
+                    updateIncludedDocument(document, included.has(document.uri.toString()))
+                )))
+                .then(() => undefined)
+                .catch(error => {
+                    console.error('Failed to update included HTTPD document languages.', error);
+                });
         }
     );
     await client.start();

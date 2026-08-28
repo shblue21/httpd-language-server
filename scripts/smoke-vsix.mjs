@@ -28,12 +28,18 @@ const workspace = join(temporary, 'workspace');
 try {
     await mkdir(join(workspace, 'conf'), { recursive: true });
     await writeFile(join(workspace, 'httpd.conf'), [
-        'Include conf/site.inc',
+        'LoadModule headers_module modules/mod_headers.so',
+        '<Directory "/srv/www">',
+        '    Include conf/site.inc',
+        '</Directory>',
         'ServerName example.test',
         'VendorDirective on',
         ''
     ].join('\n'));
-    await writeFile(join(workspace, 'conf', 'site.inc'), 'Listen 8080\n');
+    await writeFile(
+        join(workspace, 'conf', 'site.inc'),
+        'Header set X-Smoke enabled\n'
+    );
     await execFileAsync(cli, [
         '--user-data-dir', userData,
         '--extensions-dir', extensions,

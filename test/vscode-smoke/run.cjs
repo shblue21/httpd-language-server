@@ -27,14 +27,14 @@ exports.run = async function run() {
     const completion = await vscode.commands.executeCommand(
         'vscode.executeCompletionItemProvider',
         rootUri,
-        new vscode.Position(3, 0)
+        new vscode.Position(6, 0)
     );
     assert.ok(completion.items.some(item => item.label === 'ServerName'));
 
     const hovers = await vscode.commands.executeCommand(
         'vscode.executeHoverProvider',
         rootUri,
-        new vscode.Position(1, 3)
+        new vscode.Position(4, 3)
     );
     const hoverText = hovers.flatMap(hover => hover.contents)
         .map(content => content.value ?? String(content))
@@ -54,7 +54,7 @@ exports.run = async function run() {
     const definitions = await vscode.commands.executeCommand(
         'vscode.executeDefinitionProvider',
         rootUri,
-        new vscode.Position(0, 12)
+        new vscode.Position(2, 16)
     );
     assert.ok(definitions?.length > 0);
     const target = 'targetUri' in definitions[0]
@@ -65,15 +65,37 @@ exports.run = async function run() {
     const includedDocument = await waitFor(() => vscode.workspace.textDocuments.find(document =>
         document.uri.toString() === target.toString() && document.languageId === 'httpd'
     ));
+    const fragmentHovers = await vscode.commands.executeCommand(
+        'vscode.executeHoverProvider',
+        fragmentUri,
+        new vscode.Position(0, 2)
+    );
+    const fragmentHoverText = fragmentHovers.flatMap(hover => hover.contents)
+        .map(content => content.value ?? String(content))
+        .join('\n');
+    assert.match(fragmentHoverText, /\*\*Module state:\*\* loaded \(required\)/);
+    assert.match(fragmentHoverText, /\*\*Included as:\*\* directory/);
+
     await replaceDocument(includedDocument, '</Directory>\n');
     await waitFor(() => vscode.languages.getDiagnostics(rootUri).some(diagnostic =>
         diagnostic.message === 'Included file "site.inc": Closing section </Directory> has no matching opening section.'
     ) ? true : undefined);
 
-    await replaceDocument(includedDocument, 'Listen 8080\n');
+    await replaceDocument(includedDocument, 'Header set X-Smoke enabled\n');
     await waitFor(() => vscode.languages.getDiagnostics(rootUri).some(diagnostic =>
         diagnostic.message === 'Included file "site.inc": Closing section </Directory> has no matching opening section.'
     ) ? undefined : true);
+
+    await replaceDocument(root, [
+        'LoadModule headers_module modules/mod_headers.so',
+        'ServerName example.test',
+        'VendorDirective on',
+        ''
+    ].join('\n'));
+    const restoredDocument = await waitFor(() => vscode.workspace.textDocuments.find(document =>
+        document.uri.toString() === fragmentUri.toString() && document.languageId !== 'httpd'
+    ));
+    assert.equal(restoredDocument.languageId, 'plaintext');
 };
 
 async function replaceDocument(document, text) {

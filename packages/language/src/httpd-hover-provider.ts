@@ -1,6 +1,11 @@
 import { CstUtils, GrammarUtils, type LangiumDocument } from 'langium';
 import type { HoverProvider } from 'langium/lsp';
-import { MarkupKind, type Hover, type HoverParams } from 'vscode-languageserver';
+import {
+    MarkupKind,
+    type CancellationToken,
+    type Hover,
+    type HoverParams
+} from 'vscode-languageserver';
 import { apache24Catalog } from './catalog/apache-2.4.js';
 import { isDirective, isSectionOpen, type HttpdDocument } from './generated/ast.js';
 import { HttpdIncludeGraph } from './httpd-include-graph.js';
@@ -12,7 +17,11 @@ export class HttpdHoverProvider implements HoverProvider {
         private readonly includes: HttpdIncludeGraph
     ) {}
 
-    async getHoverContent(document: LangiumDocument, params: HoverParams): Promise<Hover | undefined> {
+    async getHoverContent(
+        document: LangiumDocument,
+        params: HoverParams,
+        cancelToken?: CancellationToken
+    ): Promise<Hover | undefined> {
         const root = document.parseResult.value.$cstNode;
         if (!root) {
             return undefined;
@@ -37,11 +46,22 @@ export class HttpdHoverProvider implements HoverProvider {
             return undefined;
         }
 
-        const graph = await this.includes.build(document as LangiumDocument<HttpdDocument>);
-        const requirements = this.requirements.analyzeConfiguration(
-            document.parseResult.value as HttpdDocument,
-            graph
+        const analyses = await this.includes.analyzeConfigurations(
+            document as LangiumDocument<HttpdDocument>,
+            cancelToken
         );
+        if (cancelToken?.isCancellationRequested || !this.includes.isCurrentDocument(document)) {
+            return undefined;
+        }
+        const requirements = analyses.map(analysis =>
+            this.requirements.analyzeConfiguration(
+                analysis.root.parseResult.value,
+                analysis.graph
+            )
+        );
+        const includedContexts = [...new Set(
+            analyses.flatMap(analysis => analysis.occurrences.map(occurrence => occurrence.context))
+        )].sort();
         const htaccess = document.uri.path.endsWith('/.htaccess');
         return {
             contents: {
@@ -50,6 +70,7 @@ export class HttpdHoverProvider implements HoverProvider {
                     directive,
                     this.requirements,
                     requirements,
+                    includedContexts,
                     htaccess
                 )).join('\n\n---\n\n')
             },
@@ -61,17 +82,27 @@ export class HttpdHoverProvider implements HoverProvider {
 function formatDirective(
     directive: (typeof apache24Catalog.directives)[number],
     analyzer: HttpdRequirementAnalyzer,
-    requirements: HttpdRequirements,
+    requirements: readonly HttpdRequirements[],
+    includedContexts: readonly string[],
     htaccess: boolean
 ): string {
     const metadata = [
         `**Module:** ${directive.modules.map(module => `\`${module}\``).join(' or ')}`,
-        `**Module state:** ${formatModuleState(analyzer.moduleState(requirements, directive.modules))}`,
-        `**Configuration minimum:** ${requirements.minimumVersion}`,
-        `**Target platform:** ${formatTargetPlatforms(requirements.targetPlatforms)}`,
-        `**Context:** ${directive.contexts.join(', ')}`,
-        `**Status:** ${directive.status}`
+        `**Module state:** ${formatModuleState(
+            requirements.map(item => analyzer.moduleState(item, directive.modules))
+        )}`,
+        `**Configuration minimum:** ${formatVariants(
+            requirements.map(item => item.minimumVersion)
+        )}`,
+        `**Target platform:** ${formatVariants(
+            requirements.map(item => formatTargetPlatforms(item.targetPlatforms))
+        )}`,
+        `**Context:** ${directive.contexts.join(', ')}`
     ];
+    if (includedContexts.length > 0) {
+        metadata.push(`**Included as:** ${includedContexts.join(', ')}`);
+    }
+    metadata.push(`**Status:** ${directive.status}`);
     if (directive.since) {
         metadata.push(`**Since:** ${directive.since}`);
     }
@@ -88,8 +119,21 @@ function formatDirective(
     ].join('\n\n');
 }
 
-function formatModuleState(state: 'loaded' | 'unknown'): string {
-    return state === 'loaded' ? 'loaded (required)' : 'required; load state unknown';
+function formatModuleState(states: readonly ('loaded' | 'unknown')[]): string {
+    if (states.every(state => state === 'loaded')) {
+        return 'loaded (required)';
+    }
+    if (states.every(state => state === 'unknown')) {
+        return 'required; load state unknown';
+    }
+    return 'varies by including configuration';
+}
+
+function formatVariants(values: readonly string[]): string {
+    const unique = [...new Set(values)].sort();
+    return unique.length === 1
+        ? unique[0]
+        : `varies by including configuration (${unique.join(', ')})`;
 }
 
 function formatTargetPlatforms(

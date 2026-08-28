@@ -76,7 +76,8 @@ export const HttpdModule: Module<HttpdServices, PartialLangiumServices & HttpdAd
             services.shared.workspace.FileSystemProvider,
             services.parser.LangiumParser,
             services.shared.ServiceRegistry as HttpdServiceRegistry,
-            services.shared.workspace.TextDocuments
+            services.shared.workspace.TextDocuments,
+            services.shared.workspace.LangiumDocuments
         ),
         IncludeResolver: services => new HttpdIncludeResolver(
             services.shared.workspace.FileSystemProvider

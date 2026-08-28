@@ -1,4 +1,11 @@
-import { AstUtils, type ValidationAcceptor, type ValidationChecks } from 'langium';
+import {
+    AstUtils,
+    UriUtils,
+    type LangiumDocument,
+    type ValidationAcceptor,
+    type ValidationChecks
+} from 'langium';
+import type { CancellationToken } from 'vscode-languageserver';
 import {
     type Directive,
     type HttpdAstType,
@@ -50,8 +57,19 @@ export class HttpdValidator {
         });
     }
 
-    async checkIncludeGraph(document: HttpdDocument, accept: ValidationAcceptor): Promise<void> {
-        const graph = await this.includeGraph.build(AstUtils.getDocument(document));
+    async checkIncludeGraph(
+        document: HttpdDocument,
+        accept: ValidationAcceptor,
+        cancelToken: CancellationToken
+    ): Promise<void> {
+        const langiumDocument = AstUtils.getDocument(document) as LangiumDocument<HttpdDocument>;
+        const documentKey = UriUtils.normalize(langiumDocument.uri);
+        if (this.serviceRegistry.getRootsForIncluded(langiumDocument.uri).some(root =>
+            UriUtils.normalize(root) !== documentKey
+        )) {
+            return;
+        }
+        const graph = await this.includeGraph.build(langiumDocument, cancelToken);
         for (const cycle of graph.cycles) {
             const prefix = cycle.condition === 'unknown' ? 'Conditional include cycle' : 'Include cycle';
             accept(cycle.condition === 'unknown' ? 'warning' : 'error', `${prefix} detected: ${cycle.path.map(uri => uri.path.split('/').at(-1)).join(' -> ')}.`, {

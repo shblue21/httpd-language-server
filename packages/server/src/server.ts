@@ -56,6 +56,15 @@ export function registerIncludedRootRevalidation(
     };
 }
 
+export function registerIncludedRootCleanup(shared: HttpdSharedServices): () => void {
+    const updates = shared.workspace.DocumentBuilder.onUpdate((_changed, deleted) => {
+        for (const root of deleted) {
+            shared.ServiceRegistry.removeRoot(root);
+        }
+    });
+    return () => updates.dispose();
+}
+
 export function startHttpdLanguageServer(connection?: Connection): void {
     const activeConnection = connection ?? createConnection(ProposedFeatures.all);
     const { shared } = createHttpdServices({
@@ -70,7 +79,9 @@ export function startHttpdLanguageServer(connection?: Connection): void {
         void activeConnection.sendNotification('httpd/includedDocumentsChanged', { uris });
     });
     const disposeRootRevalidation = registerIncludedRootRevalidation(shared);
+    const disposeRootCleanup = registerIncludedRootCleanup(shared);
     activeConnection.onShutdown(() => {
+        disposeRootCleanup();
         disposeRootRevalidation();
         disposeIncludedListener();
     });

@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { URI } from 'langium';
-import { registerIncludedRootRevalidation } from '../out/server.js';
+import {
+    registerIncludedRootCleanup,
+    registerIncludedRootRevalidation
+} from '../out/server.js';
 
 const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 
@@ -102,4 +105,35 @@ test('does not rebuild after disposal while workspace readiness is pending', asy
     await wait(15);
 
     assert.equal(updates, 0);
+});
+
+
+test('removes deleted roots from the include registry', () => {
+    const deleted = [
+        URI.parse('file:///workspace/httpd.conf'),
+        URI.parse('file:///workspace/secondary.conf')
+    ];
+    const removed = [];
+    let update;
+    let disposed = false;
+    const shared = {
+        ServiceRegistry: {
+            removeRoot: uri => removed.push(uri.toString())
+        },
+        workspace: {
+            DocumentBuilder: {
+                onUpdate: listener => {
+                    update = listener;
+                    return { dispose: () => { disposed = true; } };
+                }
+            }
+        }
+    };
+
+    const dispose = registerIncludedRootCleanup(shared);
+    update([], deleted);
+    assert.deepEqual(removed, deleted.map(uri => uri.toString()));
+
+    dispose();
+    assert.equal(disposed, true);
 });

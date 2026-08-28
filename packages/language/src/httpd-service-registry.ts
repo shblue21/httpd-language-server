@@ -23,6 +23,7 @@ export class HttpdServiceRegistry extends DefaultServiceRegistry {
             targetUri: URI;
         }[]
     ): void {
+        const rootKey = UriUtils.normalize(root);
         const included = new Map<string, IncludedContext>();
         for (const occurrence of occurrences) {
             const key = UriUtils.normalize(occurrence.targetUri);
@@ -32,15 +33,27 @@ export class HttpdServiceRegistry extends DefaultServiceRegistry {
                 entry.sections.add(occurrence.sectionName);
             }
             included.set(key, entry);
+            if (key !== rootKey) {
+                this.includesByRoot.delete(key);
+            }
         }
-        this.includesByRoot.set(UriUtils.normalize(root), included);
-        const uris = this.getIncludedUris();
-        this.includedListeners.forEach(listener => listener(uris));
+        this.includesByRoot.set(rootKey, included);
+        this.notifyIncluded();
+    }
+
+    removeRoot(root: URI): void {
+        if (this.includesByRoot.delete(UriUtils.normalize(root))) {
+            this.notifyIncluded();
+        }
     }
 
     onDidChangeIncluded(listener: (uris: readonly string[]) => void): () => void {
         this.includedListeners.add(listener);
         return () => this.includedListeners.delete(listener);
+    }
+
+    hasRoot(uri: URI): boolean {
+        return this.includesByRoot.has(UriUtils.normalize(uri));
     }
 
     isIncluded(uri: URI): boolean {
@@ -71,6 +84,11 @@ export class HttpdServiceRegistry extends DefaultServiceRegistry {
         return [...this.includesByRoot.entries()]
             .filter(([, included]) => included.has(key))
             .map(([root]) => URI.parse(root));
+    }
+
+    private notifyIncluded(): void {
+        const uris = this.getIncludedUris();
+        this.includedListeners.forEach(listener => listener(uris));
     }
 
     private getIncludedUris(): readonly string[] {

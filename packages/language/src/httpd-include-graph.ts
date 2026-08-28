@@ -1,12 +1,16 @@
 import {
+    interruptAndCheck,
+    isOperationCancelled,
     UriUtils,
     type FileSystemProvider,
     type LangiumDocument,
+    type LangiumDocuments,
     type LangiumParser,
     type ParseResult,
     type TextDocumentProvider,
     type URI
 } from 'langium';
+import type { CancellationToken } from 'vscode-languageserver';
 import type { DirectiveContext } from './catalog/types.js';
 import { apache24Catalog } from './catalog/apache-2.4.js';
 import {
@@ -78,16 +82,44 @@ export interface IncludeGraph {
     truncatedIncludes: readonly Directive[];
 }
 
+export interface IncludeConfigurationAnalysis {
+    graph: IncludeGraph;
+    occurrences: readonly IncludeOccurrence[];
+    root: LangiumDocument<HttpdDocument>;
+}
+
 export class HttpdIncludeGraph {
     constructor(
         private readonly includes: HttpdIncludeResolver,
         private readonly fileSystem: FileSystemProvider,
         private readonly parser: LangiumParser,
         private readonly serviceRegistry: HttpdServiceRegistry,
-        private readonly textDocuments?: TextDocumentProvider
+        private readonly textDocuments?: TextDocumentProvider,
+        private readonly langiumDocuments?: LangiumDocuments
     ) {}
 
-    async build(root: LangiumDocument<HttpdDocument>): Promise<IncludeGraph> {
+    async build(
+        root: LangiumDocument<HttpdDocument>,
+        cancelToken?: CancellationToken
+    ): Promise<IncludeGraph> {
+        const graph = await this.analyze(root, cancelToken);
+        const rootKey = UriUtils.normalize(root.uri);
+        const hasExternalRoot = this.serviceRegistry.getRootsForIncluded(root.uri).some(uri =>
+            UriUtils.normalize(uri) !== rootKey
+        );
+        if (!hasExternalRoot) {
+            this.serviceRegistry.replaceIncluded(root.uri, graph.occurrences);
+        }
+        return graph;
+    }
+
+    async analyze(
+        root: LangiumDocument<HttpdDocument>,
+        cancelToken?: CancellationToken
+    ): Promise<IncludeGraph> {
+        if (cancelToken) {
+            await interruptAndCheck(cancelToken);
+        }
         const state: MutableGraph = {
             cycles: [],
             documents: new Map([[root.uri.toString(), root.parseResult]]),
@@ -114,10 +146,79 @@ export class HttpdIncludeGraph {
             undefined,
             'active',
             facts,
-            state
+            state,
+            cancelToken
         );
-        this.serviceRegistry.replaceIncluded(root.uri, state.occurrences);
         return state;
+    }
+
+    async analyzeConfigurations(
+        document: LangiumDocument<HttpdDocument>,
+        cancelToken?: CancellationToken
+    ): Promise<readonly IncludeConfigurationAnalysis[]> {
+        const documentKey = UriUtils.normalize(document.uri);
+        const registeredRoots = this.serviceRegistry.getRootsForIncluded(document.uri);
+        const externalRoots = registeredRoots.filter(uri =>
+            UriUtils.normalize(uri) !== documentKey
+        );
+        const rootUris = externalRoots.length > 0 ? [...externalRoots] : [document.uri];
+        rootUris.sort((left, right) => left.toString().localeCompare(right.toString()));
+
+        const analyses: IncludeConfigurationAnalysis[] = [];
+        const seenRoots = new Set<string>();
+        for (const rootUri of rootUris) {
+            if (cancelToken) {
+                await interruptAndCheck(cancelToken);
+            }
+            const rootKey = UriUtils.normalize(rootUri);
+            if (seenRoots.has(rootKey)) {
+                continue;
+            }
+            seenRoots.add(rootKey);
+
+            let root: LangiumDocument<HttpdDocument>;
+            if (rootKey === documentKey) {
+                root = document;
+            } else {
+                try {
+                    const resolved = this.langiumDocuments?.getDocument(rootUri)
+                        ?? await this.langiumDocuments?.getOrCreateDocument(rootUri, cancelToken);
+                    if (!resolved) {
+                        continue;
+                    }
+                    root = resolved as LangiumDocument<HttpdDocument>;
+                } catch (error) {
+                    if (isOperationCancelled(error)) {
+                        throw error;
+                    }
+                    continue;
+                }
+            }
+            const graph = await this.analyze(root, cancelToken);
+            const occurrences = graph.occurrences.filter(occurrence =>
+                UriUtils.normalize(occurrence.targetUri) === documentKey
+            );
+            if (rootKey !== documentKey && occurrences.length === 0) {
+                continue;
+            }
+            analyses.push({ graph, occurrences, root });
+        }
+
+        if (analyses.length === 0) {
+            analyses.push({
+                graph: await this.analyze(document, cancelToken),
+                occurrences: [],
+                root: document
+            });
+        }
+        return analyses;
+    }
+
+    isCurrentDocument(document: LangiumDocument): boolean {
+        const current = this.langiumDocuments?.getDocument(document.uri);
+        return !current
+            || (current === document
+                && current.textDocument.version === document.textDocument.version);
     }
 
     private async visitStatements(
@@ -129,9 +230,13 @@ export class HttpdIncludeGraph {
         rootOrigin: Directive | undefined,
         condition: Exclude<ConditionState, 'inactive'>,
         facts: GraphFacts,
-        state: MutableGraph
+        state: MutableGraph,
+        cancelToken?: CancellationToken
     ): Promise<void> {
         for (const statement of statements) {
+            if (cancelToken) {
+                await interruptAndCheck(cancelToken);
+            }
             if (isSection(statement)) {
                 this.recordSectionIssues(statement, uri, rootOrigin, condition, state);
                 this.recordSemanticIssues(
@@ -169,7 +274,8 @@ export class HttpdIncludeGraph {
                     rootOrigin,
                     effectiveCondition,
                     branchFacts,
-                    state
+                    state,
+                    cancelToken
                 );
                 if (conditional && ownCondition === 'unknown') {
                     joinUnknownFacts(facts, branchFacts);
@@ -197,7 +303,8 @@ export class HttpdIncludeGraph {
                         rootOrigin,
                         condition,
                         facts,
-                        state
+                        state,
+                        cancelToken
                     );
                 }
             }
@@ -213,10 +320,14 @@ export class HttpdIncludeGraph {
         rootOrigin: Directive | undefined,
         condition: Exclude<ConditionState, 'inactive'>,
         facts: GraphFacts,
-        state: MutableGraph
+        state: MutableGraph,
+        cancelToken?: CancellationToken
     ): Promise<void> {
         if (!facts.configurationBase) {
             return;
+        }
+        if (cancelToken) {
+            await interruptAndCheck(cancelToken);
         }
         const resolution = await this.includes.resolve(
             { uri: sourceUri },
@@ -243,6 +354,9 @@ export class HttpdIncludeGraph {
         }
 
         for (const targetUri of resolution.targets) {
+            if (cancelToken) {
+                await interruptAndCheck(cancelToken);
+            }
             const origin = rootOrigin ?? directive;
             if (state.occurrences.length >= MAX_OCCURRENCES) {
                 addUniqueDirective(state.truncatedIncludes, origin);
@@ -268,7 +382,13 @@ export class HttpdIncludeGraph {
                 continue;
             }
 
-            const result = await this.getDocument(targetUri, origin, condition, state);
+            const result = await this.getDocument(
+                targetUri,
+                origin,
+                condition,
+                state,
+                cancelToken
+            );
             if (!result) {
                 continue;
             }
@@ -281,7 +401,8 @@ export class HttpdIncludeGraph {
                 origin,
                 condition,
                 facts,
-                state
+                state,
+                cancelToken
             );
         }
     }
@@ -290,17 +411,27 @@ export class HttpdIncludeGraph {
         uri: URI,
         origin: Directive,
         condition: Exclude<ConditionState, 'inactive'>,
-        state: MutableGraph
+        state: MutableGraph,
+        cancelToken?: CancellationToken
     ): Promise<ParseResult<HttpdDocument> | undefined> {
+        if (cancelToken) {
+            await interruptAndCheck(cancelToken);
+        }
         const key = uri.toString();
         let result = state.documents.get(key);
         if (!result) {
             try {
                 const text = this.textDocuments?.get(uri)?.getText()
                     ?? await this.fileSystem.readFile(uri);
+                if (cancelToken) {
+                    await interruptAndCheck(cancelToken);
+                }
                 result = this.parser.parse<HttpdDocument>(text);
                 state.documents.set(key, result);
-            } catch {
+            } catch (error) {
+                if (isOperationCancelled(error)) {
+                    throw error;
+                }
                 return undefined;
             }
         }
