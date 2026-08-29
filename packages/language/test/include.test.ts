@@ -5,8 +5,7 @@ import { join } from 'node:path';
 import { URI } from 'langium';
 import { NodeFileSystem } from 'langium/node';
 import { parseHelper } from 'langium/test';
-import { createHttpdServices, type HttpdDocument } from '../src/index.js';
-import { resolveConfigurationPath } from '../src/httpd-include-resolver.js';
+import { createHttpdServices, type Directive, type HttpdDocument } from '../src/index.js';
 
 let directory: string;
 let externalDirectory: string;
@@ -38,20 +37,6 @@ afterAll(async () => {
 });
 
 describe('HTTPD includes', () => {
-    test('resolves target paths without depending on the host operating system', () => {
-        const document = URI.parse('file:///workspace/httpd.conf');
-
-        expect(resolveConfigurationPath(document, 'conf/extra.conf').path).toBe(
-            '/workspace/conf/extra.conf'
-        );
-        expect(resolveConfigurationPath(document, '/etc/httpd/extra.conf').path).toBe(
-            '/etc/httpd/extra.conf'
-        );
-        expect(resolveConfigurationPath(document, 'C:/Apache24/conf/extra.conf').path).toBe(
-            '/C:/Apache24/conf/extra.conf'
-        );
-    });
-
     test('navigates to a relative include target', async () => {
         const parse = parseHelper<HttpdDocument>(services.Httpd);
         const document = await parse('Include fragment.inc\n', {
@@ -177,7 +162,7 @@ Define SAFE yes
     test('does not read absolute or escaping target paths from the host', async () => {
         const parse = parseHelper<HttpdDocument>(services.Httpd);
         const absolute = join(directory, 'fragment.inc');
-        const document = await parse(`Include "${absolute}"\nInclude ../outside.conf\n`, {
+        const document = await parse(`Include "${absolute}"\nInclude C:/Apache24/conf/httpd.conf\nInclude ../outside.conf\n`, {
             documentUri: URI.file(join(directory, 'safe.httpd')).toString(),
             validation: true
         });
@@ -186,7 +171,12 @@ Define SAFE yes
             textDocument: { uri: document.uri.toString() },
             position: { line: 0, character: 12 }
         });
+        const windowsResolution = await services.Httpd.workspace.IncludeResolver.resolve(
+            document,
+            document.parseResult.value.statements[1] as Directive
+        );
         expect(absoluteLinks).toBeUndefined();
+        expect(windowsResolution).toEqual({ status: 'unknown', targets: [] });
         expect(document.diagnostics).toHaveLength(0);
     });
 

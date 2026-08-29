@@ -37,8 +37,7 @@ export class HttpdIncludeResolver {
         }
 
         const normalized = path.replaceAll('\\', '/');
-        const absolute = isAbsoluteConfigurationPath(normalized);
-        if (absolute) {
+        if (isAbsoluteConfigurationPath(normalized)) {
             return { status: 'unknown', targets: [] };
         }
         try {
@@ -56,9 +55,7 @@ export class HttpdIncludeResolver {
             return { status: 'unknown', targets: [] };
         }
 
-        return absolute
-            ? { status: 'unknown', targets: [] }
-            : { status: 'missing', targets: [] };
+        return { status: 'missing', targets: [] };
     }
 
     async resolveServerRoot(
@@ -179,12 +176,6 @@ export function isIncludeDirective(directive: Directive): boolean {
 
 function isAbsoluteConfigurationPath(path: string): boolean {
     return path.startsWith('/') || /^[A-Za-z]:[\\/]/.test(path);
-}
-
-export function resolveConfigurationPath(documentUri: URI, path: string): URI {
-    return isAbsoluteConfigurationPath(path)
-        ? URI.file(path)
-        : UriUtils.resolvePath(UriUtils.dirname(documentUri), path);
 }
 
 function resolveFromBase(base: URI, path: string): URI {
