@@ -110,6 +110,39 @@ Include module.inc
         });
     });
 
+    test('uses included facts while evaluating an assumed unknown branch', async () => {
+        await writeFile(join(directory, 'branch-facts.inc'), 'Define INNER yes\n');
+        const parse = parseHelper<HttpdDocument>(services.Httpd);
+        const document = await parse(`
+Define SAFE yes
+<IfVersion >= 2.4.0>
+    Include branch-facts.inc
+    <IfDefine !INNER>
+        UnDefine SAFE
+    </IfDefine>
+</IfVersion>
+<IfDefine SAFE>
+    Define AFTER_SAFE yes
+</IfDefine>
+`, {
+            documentUri: URI.file(join(directory, 'branch-facts.httpd')).toString(),
+            validation: true
+        });
+        const graph = await services.Httpd.workspace.IncludeGraph.build(document);
+        const requirements = services.Httpd.semantic.Requirements.analyzeConfiguration(
+            document.parseResult.value,
+            graph
+        );
+
+        expect(requirements.conditions.map(condition => condition.state)).toEqual([
+            'unknown',
+            'inactive',
+            'active'
+        ]);
+        expect(requirements.defines.get('SAFE')).toBe('yes');
+        expect(requirements.defines.get('AFTER_SAFE')).toBe('yes');
+    });
+
     test('uses a discoverable ServerRoot as the include base', async () => {
         const root = join(directory, 'server-root');
         await mkdir(join(root, 'conf'), { recursive: true });
@@ -186,6 +219,23 @@ Include module.inc
         expect(links?.[0].targetUri).toBe(URI.file(join(directory, 'fragment.inc')).toString());
     });
 
+    test('does not substitute a Define whose conditional value is unknown', async () => {
+        const parse = parseHelper<HttpdDocument>(services.Httpd);
+        const document = await parse(`
+Define SITE fragment
+<IfVersion >= 2.4.0>
+    Define SITE module
+</IfVersion>
+Include \${SITE}.inc
+`, {
+            documentUri: URI.file(join(directory, 'conditional-defined.httpd')).toString(),
+            validation: true
+        });
+        const graph = await services.Httpd.workspace.IncludeGraph.analyze(document);
+
+        expect(graph.occurrences).toHaveLength(0);
+    });
+
     test('applies definitions in source order', async () => {
         const parse = parseHelper<HttpdDocument>(services.Httpd);
         const document = await parse(`
@@ -239,6 +289,22 @@ Define MAYBE yes
 <IfDefine MAYBE>
     Include joined-missing.inc
 </IfDefine>
+Define BUILD release
+<IfVersion >= 2.4.0>
+    Define BUILD debug
+</IfVersion>
+<IfDefine BUILD>
+    Include defined-missing.inc
+</IfDefine>
+Define SAFE yes
+<IfVersion >= 2.4.0>
+    <IfDefine !SAFE>
+        UnDefine SAFE
+    </IfDefine>
+</IfVersion>
+<IfDefine SAFE>
+    Include safe-missing.inc
+</IfDefine>
 `, {
             documentUri: URI.file(join(directory, 'conditions.httpd')).toString(),
             validation: true
@@ -253,6 +319,12 @@ Define MAYBE yes
         );
         expect(messages).toContain(
             'Conditional include "joined-missing.inc" cannot be resolved from this workspace.'
+        );
+        expect(messages).toContain(
+            'Cannot resolve required include "defined-missing.inc" from this workspace.'
+        );
+        expect(messages).toContain(
+            'Cannot resolve required include "safe-missing.inc" from this workspace.'
         );
     });
 

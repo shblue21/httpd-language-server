@@ -135,4 +135,47 @@ Define MAYBE yes
         expect(requirements.defines.has('MAYBE')).toBe(false);
         expect(requirements.defines.has('AFTER_MAYBE')).toBe(false);
     });
+
+    test('preserves Define existence when only its conditional value changes', async () => {
+        const document = await parse(`
+Define BUILD release
+<IfVersion >= 2.4.0>
+    Define BUILD debug
+</IfVersion>
+<IfDefine BUILD>
+    Define AFTER yes
+</IfDefine>
+`);
+        const requirements = services.semantic.Requirements.analyze(document.parseResult.value);
+
+        expect(requirements.conditions.map(condition => condition.state)).toEqual([
+            'unknown',
+            'active'
+        ]);
+        expect(requirements.defines.get('BUILD')).toBe(true);
+        expect(requirements.defines.get('AFTER')).toBe('yes');
+    });
+
+    test('preserves facts changed only by an inactive nested branch', async () => {
+        const document = await parse(`
+Define SAFE yes
+<IfVersion >= 2.4.0>
+    <IfDefine !SAFE>
+        UnDefine SAFE
+    </IfDefine>
+</IfVersion>
+<IfDefine SAFE>
+    Define AFTER_SAFE yes
+</IfDefine>
+`);
+        const requirements = services.semantic.Requirements.analyze(document.parseResult.value);
+
+        expect(requirements.conditions.map(condition => condition.state)).toEqual([
+            'unknown',
+            'inactive',
+            'active'
+        ]);
+        expect(requirements.defines.get('SAFE')).toBe('yes');
+        expect(requirements.defines.get('AFTER_SAFE')).toBe('yes');
+    });
 });

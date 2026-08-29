@@ -23,6 +23,7 @@ import {
     type ConditionState
 } from './httpd-conditions.js';
 import { getRootContext, getSectionOwnContext } from './httpd-context.js';
+import { joinDefineFacts } from './httpd-define-facts.js';
 import { HttpdIncludeResolver, isIncludeDirective } from './httpd-include-resolver.js';
 import { HttpdServiceRegistry } from './httpd-service-registry.js';
 import {
@@ -593,34 +594,7 @@ function joinUnknownFacts(facts: GraphFacts, branch: GraphFacts): void {
     if (facts.configurationBase?.toString() !== branch.configurationBase?.toString()) {
         facts.configurationBase = undefined;
     }
-    const names = new Set([
-        ...facts.defines.keys(),
-        ...facts.undefinedDefines,
-        ...branch.defines.keys(),
-        ...branch.undefinedDefines
-    ]);
-    for (const name of names) {
-        const current = defineFact(facts, name);
-        const possible = defineFact(branch, name);
-        if (current.kind === possible.kind && current.value === possible.value) {
-            continue;
-        }
-        facts.defines.delete(name);
-        facts.undefinedDefines.delete(name);
-    }
-}
-
-function defineFact(
-    facts: GraphFacts,
-    name: string
-): { kind: 'defined' | 'undefined' | 'unknown'; value?: string | true } {
-    if (facts.defines.has(name)) {
-        return { kind: 'defined', value: facts.defines.get(name) };
-    }
-    if (facts.undefinedDefines.has(name)) {
-        return { kind: 'undefined' };
-    }
-    return { kind: 'unknown' };
+    joinDefineFacts(facts, branch);
 }
 
 function basename(path: string): string {
